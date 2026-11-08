@@ -35,8 +35,8 @@ MNIST_FILES = [
     "t10k-labels-idx1-ubyte.gz",
 ]
 MNIST_MIRRORS = [
-    "https://ossci-datasets.s3.amazonaws.com/mnist",
     "https://storage.googleapis.com/cvdf-datasets/mnist",
+    "https://ossci-datasets.s3.amazonaws.com/mnist",
 ]
 
 

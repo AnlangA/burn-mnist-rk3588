@@ -34,8 +34,8 @@ MNIST_FILES=(
 )
 
 MNIST_BASE_URLS=(
-    "https://ossci-datasets.s3.amazonaws.com/mnist"
     "https://storage.googleapis.com/cvdf-datasets/mnist"
+    "https://ossci-datasets.s3.amazonaws.com/mnist"
 )
 
 log() {
