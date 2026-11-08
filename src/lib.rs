@@ -14,7 +14,8 @@ mod tests {
     use crate::model::{MnistCnn, resolve_device};
     use crate::npu::{
         RKNB_MAGIC, RknbProfileEntry, parse_rknb_bundle, prediction_from_probabilities,
-        read_sysfs_u64, resolve_rknn_model_path, softmax_row_10,
+        read_rknpu_busy_ns, read_sysfs_u64, record_rknpu_perf_run_us, resolve_rknn_model_path,
+        softmax_row_10,
     };
     use flate2::{Compression, write::ZlibEncoder};
     use std::io::Write;
@@ -256,6 +257,12 @@ mod tests {
         assert_eq!(read_sysfs_u64(&tmp_file), 800_000_000);
         let _ = std::fs::remove_file(&tmp_file);
         assert_eq!(read_sysfs_u64(&tmp_file), 0);
+
+        let before_ns = read_rknpu_busy_ns();
+        record_rknpu_perf_run_us(89);
+        record_rknpu_perf_run_us(-5);
+        let after_ns = read_rknpu_busy_ns();
+        assert_eq!(after_ns.saturating_sub(before_ns), 89_000);
 
         let resolved = resolve_rknn_model_path(Path::new("artifacts/mnist_cnn.bpk"), false);
         assert!(resolved.to_string_lossy().ends_with(".rknn"));

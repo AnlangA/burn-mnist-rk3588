@@ -9,10 +9,15 @@ use crate::model::Prediction;
 use serde::{Deserialize, Serialize};
 use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{
+    Arc, Condvar, Mutex,
+    atomic::{AtomicU64, Ordering},
+};
 use std::thread::{self, JoinHandle};
 
 pub const RKNB_MAGIC: &[u8; 8] = b"RKNB\x01\x00\x00\x00";
+
+static RKNPU_HW_BUSY_NS: AtomicU64 = AtomicU64::new(0);
 
 const RKNN_NPU_CORE_0: u32 = 1;
 const RKNN_NPU_CORE_1: u32 = 2;
@@ -21,9 +26,16 @@ const RKNN_CORE_MASKS: [u32; 3] = [RKNN_NPU_CORE_0, RKNN_NPU_CORE_1, RKNN_NPU_CO
 
 const RKNN_TENSOR_FLOAT32: i32 = 0;
 const RKNN_TENSOR_NHWC: i32 = 1;
+const RKNN_QUERY_PERF_RUN: u32 = 3;
 const RKNN_QUERY_SDK_VERSION: u32 = 5;
 
 type RknnContext = u64;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct RknnPerfRun {
+    run_duration: i64,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -405,6 +417,19 @@ impl RknnSingleCtx {
         let ret = unsafe { (self.api.rknn_run)(self.ctx, std::ptr::null_mut()) };
         if ret != 0 {
             return Err(format!("rknn_run failed with code {ret}"));
+        }
+
+        let mut perf_run = RknnPerfRun { run_duration: 0 };
+        let qret = unsafe {
+            (self.api.rknn_query)(
+                self.ctx,
+                RKNN_QUERY_PERF_RUN,
+                (&mut perf_run as *mut RknnPerfRun).cast::<c_void>(),
+                std::mem::size_of::<RknnPerfRun>() as u32,
+            )
+        };
+        if qret == 0 && perf_run.run_duration > 0 {
+            RKNPU_HW_BUSY_NS.fetch_add((perf_run.run_duration as u64) * 1000, Ordering::Relaxed);
         }
 
         let mut out = RknnOutput {
@@ -883,10 +908,24 @@ pub fn read_sysfs_u64(path: &Path) -> u64 {
         .unwrap_or(0)
 }
 
+/// Record `run_duration` microseconds reported by `RKNN_QUERY_PERF_RUN` into the cumulative
+/// user-space hardware busy counter `RKNPU_HW_BUSY_NS`.
+pub fn record_rknpu_perf_run_us(duration_us: i64) {
+    if duration_us > 0 {
+        RKNPU_HW_BUSY_NS.fetch_add((duration_us as u64) * 1000, Ordering::Relaxed);
+    }
+}
+
 /// Read cumulative RK3588 NPU hardware busy time in nanoseconds across all 3 NPU cores
-/// from `/sys/module/rknpu/parameters/hw_busy_ns`.
+/// from `/sys/module/rknpu/parameters/hw_busy_ns` (or `RKNPU_HW_BUSY_NS` accumulated via
+/// `RKNN_QUERY_PERF_RUN` when the kernel sysfs counter is unavailable).
 pub fn read_rknpu_busy_ns() -> u64 {
-    read_sysfs_u64(Path::new("/sys/module/rknpu/parameters/hw_busy_ns"))
+    let sysfs_ns = read_sysfs_u64(Path::new("/sys/module/rknpu/parameters/hw_busy_ns"));
+    if sysfs_ns > 0 {
+        sysfs_ns
+    } else {
+        RKNPU_HW_BUSY_NS.load(Ordering::Relaxed)
+    }
 }
 
 /// Read cumulative RK3588 NPU hardware jobs completed from `/sys/module/rknpu/parameters/hw_jobs`.
