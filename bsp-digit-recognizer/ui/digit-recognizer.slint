@@ -1,0 +1,803 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Digit recognition showcase UI. The layout adapts to the output: the
+// ATK-DLRK3588 DSI panel is portrait (1080x1920, scale 2 -> 540x960
+// logical px), HDMI outputs are landscape. All recognition data comes
+// from the Rust side; this file only presents it.
+
+// Bold CJK headings: the board's only Chinese font (WenQuanYi Zen Hei) has
+// no bold face and FemtoVG does not synthesise one, so headings use this
+// embedded subset of Noto Sans CJK SC Bold (tools/make_heading_font.py).
+import "fonts/DRHeadingSC-Bold.ttf";
+
+export struct DigitSample {
+    name: string,
+    path: string,
+    thumb: image,
+    // Ground-truth digit parsed from the file name, -1 when unknown.
+    label: int,
+}
+
+export struct DigitProbability {
+    digit: int,
+    probability: float,
+}
+
+global Theme {
+    out property <color> text: #f0f5ff;
+    out property <color> muted: #9eafc6;
+    out property <color> faint: #5d6e88;
+    out property <color> accent: #64e4bb;
+    out property <color> accent-soft: #64e4bb33;
+    out property <color> bar: #3f8eccb3;
+    out property <color> warn: #e8b46a;
+    out property <color> danger: #ff8a80;
+    out property <color> panel: #17253a99;
+    out property <color> inset: #0b1626cc;
+    out property <color> line: #c7eaff30;
+    // Family of the embedded bold font above; only for bold text with
+    // Chinese characters (Latin bold keeps DejaVu Sans Bold).
+    out property <string> heading-font: "DR Heading SC";
+}
+
+component GlassPanel inherits Rectangle {
+    // Alpha belongs to the background brush, so children stay fully legible.
+    background: Theme.panel;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.line;
+}
+
+component SectionTitle inherits Text {
+    color: Theme.muted;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: Theme.heading-font;
+    // The heading font's line box is 1.45 em (room for accents CJK text
+    // never uses); 1.25 em keeps titles as compact as the regular text.
+    height: self.font-size * 1.25;
+    vertical-alignment: center;
+}
+
+component Chip inherits Rectangle {
+    in property <string> text;
+    in property <color> tone: Theme.accent;
+    height: 26px;
+    preferred-width: label.preferred-width + 20px;
+    min-width: Math.min(self.preferred-width, 64px);
+    border-radius: self.height / 2;
+    background: root.tone.with-alpha(0.16);
+    border-width: 1px;
+    border-color: root.tone.with-alpha(0.55);
+    label := Text {
+        x: 10px;
+        width: parent.width - 20px;
+        text: root.text;
+        color: root.tone;
+        font-size: 12px;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+        overflow: elide;
+    }
+}
+
+component GlassButton inherits Rectangle {
+    in property <string> text;
+    // The other label of a toggling button. The button is sized for the
+    // wider of the two so switching text does not shift the button row.
+    in property <string> alt-text;
+    in property <bool> primary: false;
+    in property <bool> checked: false;
+    // Narrow screens: smaller label and padding so four buttons fit a row.
+    in property <bool> compact: false;
+    callback clicked();
+    min-height: root.compact ? 46px : 52px;
+    min-width: Math.max(label.preferred-width, alt-label.preferred-width) + (root.compact ? 10px : 24px);
+    horizontal-stretch: 1;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: focus.has-focus || root.checked ? Theme.accent : Theme.line.with-alpha(0.32);
+    background: touch.pressed ? Theme.accent.with-alpha(0.45)
+        : root.primary ? Theme.accent.with-alpha(0.26)
+        : root.checked ? Theme.accent-soft
+        : touch.has-hover ? #91d3ec33 : Theme.panel;
+    animate background { duration: 120ms; }
+    forward-focus: focus;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-checked: root.checked;
+    accessible-action-default => { root.clicked(); }
+    label := Text {
+        text: root.text;
+        color: root.primary || root.checked ? Theme.accent : Theme.text;
+        font-size: root.compact ? 14px : 16px;
+        font-weight: root.primary ? 700 : 400;
+        font-family: root.primary ? Theme.heading-font : "";
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    // Measures the alternative label only; never drawn.
+    alt-label := Text {
+        visible: false;
+        text: root.alt-text;
+        font-size: label.font-size;
+        font-weight: label.font-weight;
+        font-family: label.font-family;
+    }
+    // Taps do not take keyboard focus: on the touch panel the focus ring
+    // would otherwise stick to the last tapped button and look "checked".
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+    focus := FocusScope {
+        width: 0px;
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+}
+
+component ThumbButton inherits Rectangle {
+    in property <image> thumb;
+    in property <string> name;
+    in property <int> label: -1;
+    in property <bool> selected: false;
+    // Height of the label strip under the image. The tile is this much
+    // taller than wide, so the image keeps a square area of its own and
+    // the label never covers the digit.
+    in property <length> caption: 14px;
+    callback clicked();
+    border-radius: 8px;
+    clip: true;
+    background: #000000;
+    accessible-role: button;
+    accessible-label: root.name;
+    accessible-action-default => { root.clicked(); }
+    Image {
+        x: 2px;
+        y: 2px;
+        width: parent.width - 4px;
+        height: parent.height - root.caption - 2px;
+        source: root.thumb;
+        image-fit: contain;
+        opacity: root.selected || touch.pressed ? 1.0 : 0.72;
+    }
+    Rectangle {
+        y: parent.height - self.height;
+        height: root.caption;
+        background: root.selected ? Theme.accent : #16243a;
+        Text {
+            text: root.label >= 0 ? root.label : "?";
+            color: root.selected ? #0b1626 : root.label >= 0 ? Theme.muted : Theme.faint;
+            font-size: Math.min(11px, root.caption - 3px);
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    // Drawn last so the selection ring sits on top of the image.
+    Rectangle {
+        border-radius: parent.border-radius;
+        border-width: root.selected ? 2px : 1px;
+        border-color: root.selected ? Theme.accent : touch.pressed ? Theme.text : Theme.line;
+        background: touch.pressed ? #ffffff1f : transparent;
+    }
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component ProbabilityRow inherits HorizontalLayout {
+    in property <int> digit;
+    in property <float> probability; // 0.0 .. 1.0
+    in property <bool> is-top: false;
+    in property <bool> compact: false;
+    spacing: 8px;
+    // Shrinks on short screens so the sample grid stays on screen; the
+    // regular height leaves the board's sample grid room for two rows of
+    // labelled thumbnails.
+    min-height: 14px;
+    preferred-height: root.compact ? 14px : 20px;
+    max-height: 20px;
+    Text {
+        width: 16px;
+        text: root.digit;
+        color: root.is-top ? Theme.accent : Theme.muted;
+        font-size: 15px;
+        font-weight: root.is-top ? 700 : 400;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        horizontal-stretch: 1;
+        border-radius: 5px;
+        background: Theme.inset;
+        Rectangle {
+            x: 0;
+            // Keep a visible sliver for tiny probabilities so every row reads as a bar.
+            width: Math.max(root.probability > 0 ? 3px : 0px, parent.width * Math.clamp(root.probability, 0.0, 1.0));
+            height: parent.height;
+            border-radius: 5px;
+            background: root.is-top ? @linear-gradient(90deg, #3fc79a, Theme.accent) : Theme.bar;
+            animate width { duration: 260ms; easing: ease-out; }
+        }
+    }
+    Text {
+        width: 52px;
+        text: root.probability <= 0 ? "0%"
+            : root.probability < 0.001 ? "<0.1%"
+            : root.probability * 100 >= 9.95 ? round(root.probability * 100) + "%"
+            : round(root.probability * 1000) / 10 + "%";
+        color: root.is-top ? Theme.text : Theme.muted;
+        font-size: 13px;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+}
+
+component HeaderBar inherits GlassPanel {
+    in property <bool> model-live;
+    in property <string> backend;
+    in property <bool> compact: false;
+    // Narrow portrait screens: the title column and the badge cannot both
+    // fit side by side, so the badge shares the first row with the title
+    // and the subtitle gets the full width of a second row.
+    in property <bool> narrow: false;
+    property <string> title: "手写数字识别";
+    property <string> subtitle: "ATK-DLRK3588 · Burn CNN · MNIST 28×28";
+    property <string> badge: root.model-live ? "● " + root.backend : "● 演示数据 · 模型未接入";
+    property <color> badge-tone: root.model-live ? Theme.accent : Theme.warn;
+    height: root.narrow || root.compact ? 54px : 64px;
+    if !root.narrow: HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 14px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 0px;
+            Text {
+                text: root.title;
+                color: Theme.text;
+                font-size: 22px;
+                font-weight: 700;
+                font-family: Theme.heading-font;
+                height: self.font-size * 1.25;
+                vertical-alignment: center;
+            }
+            Text {
+                text: root.subtitle;
+                color: Theme.muted;
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 0;
+            Chip {
+                max-width: 220px;
+                text: root.badge;
+                tone: root.badge-tone;
+            }
+        }
+    }
+    if root.narrow: VerticalLayout {
+        padding-left: 14px;
+        padding-right: 10px;
+        alignment: center;
+        spacing: 0px;
+        HorizontalLayout {
+            spacing: 8px;
+            Text {
+                horizontal-stretch: 1;
+                text: root.title;
+                color: Theme.text;
+                font-size: 20px;
+                font-weight: 700;
+                font-family: Theme.heading-font;
+                height: self.font-size * 1.25;
+                vertical-alignment: center;
+            }
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 0;
+                Chip {
+                    text: root.badge;
+                    tone: root.badge-tone;
+                }
+            }
+        }
+        Text {
+            text: root.subtitle;
+            color: Theme.muted;
+            font-size: 12px;
+            overflow: elide;
+        }
+    }
+}
+
+component PreviewCard inherits GlassPanel {
+    in property <image> source;
+    in property <string> name;
+    in property <int> truth: -1;
+    // Narrow cards: the file name moves from the title row to the caption
+    // under the image instead of crowding the title.
+    in property <bool> compact: false;
+    property <string> truth-text: root.truth >= 0 ? "标注:" + root.truth : "标注:未知";
+    // Sized only by the hero row's stretch factors: content-derived
+    // minimums made the split follow the confidence text, so both cards
+    // shifted a few px whenever the shown sample changed.
+    min-width: 0px;
+    preferred-width: 0px;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 10px;
+            SectionTitle {
+                text: "输入图像";
+                horizontal-stretch: 0;
+            }
+            if !root.compact: Text {
+                horizontal-stretch: 1;
+                text: root.name;
+                color: Theme.faint;
+                font-size: 12px;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            // Square black frame centred in the free space; MNIST samples
+            // are 28x28 white-on-black, upscaled.
+            frame := Rectangle {
+                width: Math.min(parent.width, parent.height);
+                height: self.width;
+                // Explicit preferred size: the implicit one derives from the
+                // parent size and would feed back into the layout.
+                preferred-width: 0px;
+                preferred-height: 0px;
+                border-radius: 10px;
+                background: #000000;
+                border-width: 1px;
+                border-color: Theme.line;
+                clip: true;
+                Image {
+                    width: parent.width - 12px;
+                    height: parent.height - 12px;
+                    preferred-width: 0px;
+                    preferred-height: 0px;
+                    source: root.source;
+                    image-fit: contain;
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: center;
+            // Separate texts: in a run mixed with CJK the "_" of the
+            // sample name was not drawn by the software renderer.
+            if root.compact: Text {
+                text: root.name + " · ";
+                color: Theme.muted;
+                font-size: 12px;
+                overflow: elide;
+            }
+            Text {
+                text: root.truth-text;
+                color: Theme.muted;
+                font-size: root.compact ? 12px : 13px;
+            }
+        }
+    }
+}
+
+component ResultCard inherits GlassPanel {
+    in property <int> predicted: -1;
+    in property <float> confidence;
+    in property <int> truth: -1;
+    in property <string> latency;
+    // Set by the window from its height so short screens do not overflow.
+    in property <length> digit-size: 96px;
+    // Short screens: drop the latency line (the status line repeats it).
+    in property <bool> compact: false;
+    property <bool> known: root.predicted >= 0 && root.truth >= 0;
+    // Same as PreviewCard: the hero row's stretch factors alone decide
+    // (the latency line elides rather than widening the card).
+    min-width: 0px;
+    preferred-width: 0px;
+    VerticalLayout {
+        padding: 12px;
+        spacing: root.compact ? 2px : 4px;
+        SectionTitle { text: "预测结果"; }
+        Text {
+            vertical-stretch: 1;
+            text: root.predicted >= 0 ? root.predicted : "–";
+            color: root.predicted < 0 ? Theme.faint : root.known && root.predicted != root.truth ? Theme.danger : Theme.text;
+            font-size: root.digit-size;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.predicted >= 0 ? "置信度 " + round(root.confidence * 1000) / 10 + "%" : "置信度 --";
+            color: Theme.accent;
+            font-size: root.compact ? 18px : 20px;
+            font-weight: 700;
+            font-family: Theme.heading-font;
+            height: self.font-size * 1.25;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+        }
+        // Confidence gauge.
+        Rectangle {
+            height: 6px;
+            border-radius: 3px;
+            background: #ffffff1a;
+            Rectangle {
+                x: 0;
+                width: parent.width * Math.clamp(root.confidence, 0.0, 1.0);
+                border-radius: 3px;
+                background: Theme.accent;
+                animate width { duration: 260ms; easing: ease-out; }
+            }
+        }
+        HorizontalLayout {
+            alignment: center;
+            padding-top: 6px;
+            Chip {
+                text: !root.known ? "等待识别"
+                    : root.predicted == root.truth ? "✓ 与标注一致" : "✗ 标注为 " + root.truth;
+                tone: !root.known ? Theme.muted : root.predicted == root.truth ? Theme.accent : Theme.danger;
+            }
+        }
+        if !root.compact: Text {
+            text: root.latency;
+            color: Theme.faint;
+            font-size: 12px;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component ProbabilityCard inherits GlassPanel {
+    in property <[DigitProbability]> probabilities;
+    in property <int> predicted: -1;
+    in property <bool> compact: false;
+    VerticalLayout {
+        padding: 12px;
+        spacing: root.compact ? 2px : 4px;
+        SectionTitle { text: "0–9 概率分布"; }
+        for p in root.probabilities: ProbabilityRow {
+            digit: p.digit;
+            probability: p.probability;
+            is-top: p.digit == root.predicted;
+            compact: root.compact;
+        }
+    }
+}
+
+component SampleCard inherits GlassPanel {
+    in property <[DigitSample]> samples;
+    in property <string> current-path;
+    in property <length> min-cell: 44px;
+    in property <length> max-cell: 120px;
+    callback select(string);
+    property <length> gap: 6px;
+    // Label strip under each thumbnail (see ThumbButton).
+    property <length> caption: 13px;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 10px;
+            SectionTitle {
+                text: "样本库";
+                horizontal-stretch: 0;
+            }
+            Text {
+                horizontal-stretch: 1;
+                text: "共 " + root.samples.length + " 张 · 点击切换";
+                color: Theme.faint;
+                font-size: 12px;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        flick := Flickable {
+            vertical-stretch: 1;
+            // Largest cell that still shows every sample; a tile is `cell`
+            // wide and `cell + caption` tall. With r rows the grid needs
+            // ceil(n / r) columns; the cell size is the smaller of the
+            // width- and height-limited sizes, which is unimodal in r, so
+            // checking the rows around the balance point (w * r / n =
+            // h / r - c, i.e. r ~ sqrt(n * h / w) without captions) finds
+            // the optimum. If even that is below min-cell, fall back to
+            // as many min-cell columns as fit and scroll vertically.
+            property <int> n: Math.max(1, root.samples.length);
+            property <float> w: Math.max(1, self.width / 1px);
+            property <float> h: Math.max(1, self.height / 1px);
+            property <float> g: root.gap / 1px;
+            property <float> c: root.caption / 1px;
+            // Scrolling fallback; depends on the width only.
+            property <int> scroll-cols: Math.max(1, Math.floor((self.width + root.gap) / (root.min-cell + root.gap)));
+            property <length> scroll-cell: (self.width - (self.scroll-cols - 1) * root.gap) / self.scroll-cols;
+            // Always room for one complete row, caption included.
+            min-height: self.scroll-cell + root.caption;
+            pure function fit(rows: int) -> float {
+                let cols = Math.ceil(flick.n / rows);
+                return Math.min((flick.w - (cols - 1) * flick.g) / cols, (flick.h - (rows - 1) * flick.g) / rows - flick.c);
+            }
+            property <int> r0: Math.clamp(Math.floor((Math.sqrt(self.c * self.c * self.n * self.n + 4 * self.w * self.h * self.n) - self.c * self.n) / (2 * self.w)), 1, self.n);
+            property <int> ra: Math.max(1, self.r0 - 1);
+            property <int> rb: self.r0;
+            property <int> rc: Math.min(self.n, self.r0 + 1);
+            property <int> rd: Math.min(self.n, self.r0 + 2);
+            property <int> rab: self.fit(self.ra) >= self.fit(self.rb) ? self.ra : self.rb;
+            property <int> rcd: self.fit(self.rc) >= self.fit(self.rd) ? self.rc : self.rd;
+            property <int> best-rows: self.fit(self.rab) >= self.fit(self.rcd) ? self.rab : self.rcd;
+            property <float> best: self.fit(self.best-rows);
+            property <bool> fits: self.best * 1px >= root.min-cell;
+            property <bool> capped: self.best * 1px > root.max-cell;
+            property <int> cols: !self.fits ? self.scroll-cols
+                : self.capped ? Math.clamp(Math.floor((self.width + root.gap) / (root.max-cell + root.gap)), 1, self.n)
+                : Math.ceil(self.n / self.best-rows);
+            property <length> cell: !self.fits ? self.scroll-cell
+                : self.capped ? root.max-cell : self.best * 1px;
+            property <length> pitch-y: self.cell + root.caption + root.gap;
+            property <int> rows: Math.ceil(root.samples.length / self.cols);
+            property <length> grid-height: Math.max(0px, self.rows * self.pitch-y - root.gap);
+            // Centre the grid in whatever space is left over.
+            property <length> offset-x: Math.max(0px, (self.width - self.cols * self.cell - (self.cols - 1) * root.gap) / 2);
+            property <length> offset-y: Math.max(0px, (self.height - self.grid-height) / 2);
+            property <int> selected-index: 0;
+            property <int> selected-row: Math.floor(self.selected-index / self.cols);
+            property <length> sel-top: self.offset-y + self.selected-row * self.pitch-y;
+            property <length> sel-bottom: self.sel-top + self.cell + root.caption;
+            viewport-width: self.width;
+            viewport-height: Math.max(self.height, self.grid-height);
+            viewport-y: self.grid-height <= self.height ? 0px
+                : self.sel-bottom <= self.height ? 0px
+                : -Math.min(self.sel-bottom - self.height, self.grid-height - self.height);
+            function scroll-to-selected() {
+                if self.grid-height <= self.height {
+                    self.viewport-y = 0px;
+                } else if self.sel-top < -self.viewport-y {
+                    self.viewport-y = -self.sel-top;
+                } else if self.sel-bottom > -self.viewport-y + self.height {
+                    self.viewport-y = -Math.min(self.sel-bottom - self.height, self.grid-height - self.height);
+                }
+            }
+            changed selected-index => { self.scroll-to-selected(); }
+            for sample[i] in root.samples: ThumbButton {
+                x: flick.offset-x + Math.mod(i, flick.cols) * (flick.cell + root.gap);
+                y: flick.offset-y + Math.floor(i / flick.cols) * flick.pitch-y;
+                width: flick.cell;
+                height: flick.cell + root.caption;
+                caption: root.caption;
+                thumb: sample.thumb;
+                name: sample.name;
+                label: sample.label;
+                selected: sample.path == root.current-path;
+                init => {
+                    if self.selected {
+                        flick.selected-index = i;
+                    }
+                }
+                changed selected => {
+                    if self.selected {
+                        flick.selected-index = i;
+                    }
+                }
+                clicked => { root.select(sample.path); }
+            }
+        }
+    }
+}
+
+component ControlBar inherits HorizontalLayout {
+    in property <bool> auto-play;
+    in property <bool> compact: false;
+    callback step(int);
+    callback run();
+    callback toggle-auto-play();
+    spacing: root.compact ? 6px : 8px;
+    GlassButton {
+        text: "‹ 上一张";
+        compact: root.compact;
+        clicked => { root.step(-1); }
+    }
+    GlassButton {
+        text: "重新识别";
+        primary: true;
+        compact: root.compact;
+        clicked => { root.run(); }
+    }
+    GlassButton {
+        text: "下一张 ›";
+        compact: root.compact;
+        clicked => { root.step(1); }
+    }
+    GlassButton {
+        text: root.auto-play ? "■ 停止轮播" : "▶ 自动轮播";
+        alt-text: root.auto-play ? "▶ 自动轮播" : "■ 停止轮播";
+        checked: root.auto-play;
+        compact: root.compact;
+        clicked => { root.toggle-auto-play(); }
+    }
+}
+
+export component DigitRecognizer inherits Window {
+    title: "ATK-DLRK3588 Digit Recognizer";
+    preferred-width: 540px;
+    preferred-height: 960px;
+    background: root.scene-background;
+    in property <brush> scene-background: @linear-gradient(160deg, #0c1524 0%, #173f52 55%, #253556 100%);
+    default-font-family: "DejaVu Sans";
+    default-font-size: 16px;
+
+    in property <[DigitSample]> samples;
+    in-out property <string> current-path: "";
+    in property <image> current-image;
+    in property <string> current-name: "--";
+    in property <int> truth: -1;
+    in property <[DigitProbability]> probabilities;
+    in property <int> predicted: -1;
+    in property <float> confidence: 0.0;
+    // False while the inference backend is unavailable; the badge says so.
+    in property <bool> model-live: false;
+    in property <string> backend: "";
+    in property <string> latency: "";
+    in property <string> status: "选择一张图片开始";
+    in-out property <bool> auto-play: false;
+    in property <duration> auto-play-interval: 2500ms;
+
+    callback select-sample(string);
+    callback step-sample(int);
+    callback run-recognition();
+
+    property <bool> portrait: root.height >= root.width;
+    // Below the board's 540x960 portrait (or 600px landscape) logical size:
+    // tighten spacing and drop duplicated text so everything stays on screen.
+    property <bool> short: root.portrait ? root.height < 800px : root.height < 600px;
+    property <bool> narrow: root.portrait ? root.width < 440px : root.width < 900px;
+
+    // Demo carousel; idle (no timer wakeups) unless the user turns it on.
+    Timer {
+        interval: root.auto-play-interval;
+        running: root.auto-play && root.samples.length > 1;
+        triggered => { root.step-sample(1); }
+    }
+
+    if root.portrait: VerticalLayout {
+        padding: 12px;
+        spacing: root.short ? 5px : 10px;
+        HeaderBar {
+            model-live: root.model-live;
+            backend: root.backend;
+            compact: root.short;
+            narrow: root.narrow;
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            preferred-height: Math.min(Math.min(320px, (root.width - 34px) / 2 + 40px), root.height * 0.32);
+            max-height: self.preferred-height;
+            // Fixed 46:54 split; the result card carries the long latency line.
+            PreviewCard {
+                horizontal-stretch: 46;
+                source: root.current-image;
+                name: root.current-name;
+                truth: root.truth;
+                compact: root.narrow;
+            }
+            ResultCard {
+                horizontal-stretch: 54;
+                predicted: root.predicted;
+                confidence: root.confidence;
+                truth: root.truth;
+                latency: root.latency;
+                compact: root.short;
+                digit-size: Math.clamp(root.height * (root.short ? 0.07 : 0.1), 40px, 120px);
+            }
+        }
+        ProbabilityCard {
+            probabilities: root.probabilities;
+            predicted: root.predicted;
+            compact: root.short;
+        }
+        SampleCard {
+            vertical-stretch: 1;
+            min-cell: 42px;
+            samples: root.samples;
+            current-path: root.current-path;
+            select(path) => { root.select-sample(path); }
+        }
+        ControlBar {
+            auto-play: root.auto-play;
+            compact: root.narrow;
+            step(delta) => { root.step-sample(delta); }
+            run => { root.run-recognition(); }
+            toggle-auto-play => { root.auto-play = !root.auto-play; }
+        }
+        Text {
+            text: root.status;
+            color: Theme.muted;
+            font-size: 12px;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+
+    if !root.portrait: HorizontalLayout {
+        padding: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            horizontal-stretch: 55;
+            min-width: 0px;
+            preferred-width: 0px;
+            spacing: root.short ? 8px : 10px;
+            HeaderBar {
+                model-live: root.model-live;
+                backend: root.backend;
+                compact: root.short;
+            }
+            HorizontalLayout {
+                vertical-stretch: 1;
+                spacing: 10px;
+                PreviewCard {
+                    horizontal-stretch: 1;
+                    source: root.current-image;
+                    name: root.current-name;
+                    truth: root.truth;
+                    compact: root.narrow;
+                }
+                ResultCard {
+                    horizontal-stretch: 1;
+                    predicted: root.predicted;
+                    confidence: root.confidence;
+                    truth: root.truth;
+                    latency: root.latency;
+                    compact: root.short;
+                    digit-size: Math.clamp(root.height * (root.short ? 0.14 : 0.16), 40px, 160px);
+                }
+            }
+            ControlBar {
+                auto-play: root.auto-play;
+                compact: root.narrow;
+                step(delta) => { root.step-sample(delta); }
+                run => { root.run-recognition(); }
+                toggle-auto-play => { root.auto-play = !root.auto-play; }
+            }
+            Text {
+                text: root.status;
+                color: Theme.muted;
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 45;
+            min-width: 0px;
+            preferred-width: 0px;
+            spacing: root.short ? 8px : 10px;
+            ProbabilityCard {
+                probabilities: root.probabilities;
+                predicted: root.predicted;
+                compact: root.short;
+            }
+            SampleCard {
+                vertical-stretch: 1;
+                min-cell: 40px;
+                samples: root.samples;
+                current-path: root.current-path;
+                select(path) => { root.select-sample(path); }
+            }
+        }
+    }
+}

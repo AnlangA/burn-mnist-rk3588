@@ -1,0 +1,29 @@
+[package]
+name = "digit-recognizer"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "GPL-3.0-only"
+description = "Handwritten digit recognition showcase UI for the ATK-DLRK3588"
+
+[features]
+default = ["cpu", "gpu", "npu"]
+cpu = ["burn-mnist-rk3588/cpu"]
+gpu = ["burn-mnist-rk3588/gpu"]
+npu = ["burn-mnist-rk3588/npu"]
+
+[dependencies]
+burn-mnist-rk3588 = { path = "../burn-mnist-rk3588", default-features = false }
+slint = { version = "=1.17.1", default-features = false, features = ["std", "compat-1-2", "backend-linuxkms", "renderer-femtovg"] }
+signal-hook = "0.3"
+png = "0.18"
+
+[build-dependencies]
+slint-build = "=1.17.1"
+
+[lints.rust]
+unsafe_code = "deny"
+
+[patch.crates-io]
+# Same ARGB scanout fixes as slint-dashboard; the board requires them.
+i-slint-backend-linuxkms = { path = "../slint-dashboard/vendor/i-slint-backend-linuxkms" }

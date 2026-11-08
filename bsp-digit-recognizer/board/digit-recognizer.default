@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Optional digit recognizer output selection; mirrors slint-dashboard.default.
+SLINT_SCALE_FACTOR=2
+#SLINT_DRM_OUTPUT=HDMI-A-1
+#SLINT_DRM_MODE=0
+#SLINT_KMS_ROTATION=0
+DIGIT_RECOGNIZER_BACKEND=npu

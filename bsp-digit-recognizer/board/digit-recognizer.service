@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[Unit]
+Description=ATK-DLRK3588 digit recognizer showcase
+Requires=seatd.service
+After=seatd.service systemd-udev-trigger.service
+# Only one KMS application can own the scanout; never run both Slint apps.
+Conflicts=getty@tty1.service slint-dashboard.service
+After=getty@tty1.service slint-dashboard.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=slint-display
+Group=slint-display
+SupplementaryGroups=video render
+Environment=LIBSEAT_BACKEND=seatd
+Environment=SLINT_BACKEND=linuxkms-femtovg
+Environment=XDG_CACHE_HOME=/var/cache/digit-recognizer
+Environment=DIGIT_RECOGNIZER_BACKEND=npu
+EnvironmentFile=-/etc/default/digit-recognizer
+CacheDirectory=digit-recognizer
+RuntimeDirectory=digit-recognizer
+StateDirectory=digit-recognizer
+ExecStartPre=/usr/local/libexec/slint-wait-display
+ExecStart=/usr/local/bin/digit-recognizer --images-dir /usr/share/digit-recognizer/images
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
