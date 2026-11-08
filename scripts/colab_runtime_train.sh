@@ -9,7 +9,13 @@
 
 set -euo pipefail
 
-GDRIVE_CACHE_DIR="${GDRIVE_CACHE_DIR:-/content/drive/MyDrive/burn-mnist-rk3588-cache}"
+if [[ -z "${GDRIVE_CACHE_DIR:-}" ]]; then
+    if [[ -d /content/drive/MyDrive ]]; then
+        GDRIVE_CACHE_DIR="/content/drive/MyDrive/burn-mnist-rk3588-cache"
+    else
+        GDRIVE_CACHE_DIR="${HOME}/.cache/google-drive-burn-mnist"
+    fi
+fi
 RUNTIME_DIR="${RUNTIME_DIR:-/tmp/burn-mnist-runtime}"
 REPO_URL="${REPO_URL:-https://github.com/AnlangA/burn-mnist-rk3588.git}"
 LOCAL_REPO_OUT="${LOCAL_REPO_OUT:-}"
@@ -48,6 +54,11 @@ log() {
     printf '[colab-runtime] %s\n' "$*"
 }
 
+is_valid_gz() {
+    local file="$1"
+    [[ -s "${file}" ]] && gzip -t "${file}" >/dev/null 2>&1
+}
+
 mkdir -p "${GDRIVE_CACHE_DIR}" "${DRIVE_MNIST_DIR}" "${DRIVE_ARTIFACTS_DIR}"
 mkdir -p "${RUNTIME_DIR}" "${RUNTIME_MNIST_DIR}"
 
@@ -56,7 +67,7 @@ mkdir -p "${RUNTIME_DIR}" "${RUNTIME_MNIST_DIR}"
 # ---------------------------------------------------------------------------
 mnist_cached_in_drive=true
 for f in "${MNIST_FILES[@]}"; do
-    if [[ ! -s "${DRIVE_MNIST_DIR}/${f}" ]]; then
+    if ! is_valid_gz "${DRIVE_MNIST_DIR}/${f}"; then
         mnist_cached_in_drive=false
         break
     fi
@@ -68,23 +79,34 @@ if [[ "${mnist_cached_in_drive}" == "true" ]]; then
         cp -f "${DRIVE_MNIST_DIR}/${f}" "${RUNTIME_MNIST_DIR}/${f}"
     done
 else
-    log "MNIST dataset not found in Google Drive. Downloading to runtime and caching to Google Drive..."
+    log "MNIST dataset missing or incomplete in Google Drive. Downloading to runtime and caching to Google Drive..."
     for f in "${MNIST_FILES[@]}"; do
-        if [[ ! -s "${RUNTIME_MNIST_DIR}/${f}" ]]; then
+        if is_valid_gz "${DRIVE_MNIST_DIR}/${f}"; then
+            cp -f "${DRIVE_MNIST_DIR}/${f}" "${RUNTIME_MNIST_DIR}/${f}"
+            continue
+        fi
+        if ! is_valid_gz "${RUNTIME_MNIST_DIR}/${f}"; then
+            rm -f "${RUNTIME_MNIST_DIR}/${f}"
+            tmp_dest="${RUNTIME_MNIST_DIR}/${f}.tmp"
             downloaded=false
             for base_url in "${MNIST_BASE_URLS[@]}"; do
                 log "Downloading ${base_url}/${f} ..."
-                if curl -fL --retry 3 --connect-timeout 15 -o "${RUNTIME_MNIST_DIR}/${f}" "${base_url}/${f}"; then
+                rm -f "${tmp_dest}"
+                if curl -fL --retry 3 --connect-timeout 15 -o "${tmp_dest}" "${base_url}/${f}" && is_valid_gz "${tmp_dest}"; then
+                    mv -f "${tmp_dest}" "${RUNTIME_MNIST_DIR}/${f}"
                     downloaded=true
                     break
                 fi
+                rm -f "${tmp_dest}"
             done
             if [[ "${downloaded}" != "true" ]]; then
-                echo "Error: Failed to download ${f}" >&2
+                echo "Error: Failed to download valid ${f}" >&2
                 exit 1
             fi
         fi
-        cp -f "${RUNTIME_MNIST_DIR}/${f}" "${DRIVE_MNIST_DIR}/${f}"
+        tmp_drive="${DRIVE_MNIST_DIR}/${f}.tmp"
+        cp -f "${RUNTIME_MNIST_DIR}/${f}" "${tmp_drive}"
+        mv -f "${tmp_drive}" "${DRIVE_MNIST_DIR}/${f}"
     done
     log "Cached MNIST dataset to Google Drive (${DRIVE_MNIST_DIR})."
 fi
@@ -104,16 +126,23 @@ if ! command -v cargo >/dev/null 2>&1; then
     export PATH="${HOME}/.cargo/bin:${PATH}"
 fi
 
+mkdir -p "${RUNTIME_CARGO_HOME}"
+export CARGO_HOME="${RUNTIME_CARGO_HOME}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/burn-mnist-cargo-target}"
+
 if [[ -s "${DRIVE_RUST_ENV_TAR}" ]]; then
     log "Rust Burn environment cache found in Google Drive (${DRIVE_RUST_ENV_TAR}). Migrating to runtime..."
-    mkdir -p "${RUNTIME_CARGO_HOME}"
-    tar -xzf "${DRIVE_RUST_ENV_TAR}" -C "${RUNTIME_CARGO_HOME}"
-    export CARGO_HOME="${RUNTIME_CARGO_HOME}"
-    if [[ -d "${RUNTIME_CARGO_HOME}/bin" ]]; then
-        export PATH="${RUNTIME_CARGO_HOME}/bin:${PATH}"
+    if ! tar -xzf "${DRIVE_RUST_ENV_TAR}" -C "${RUNTIME_CARGO_HOME}" || [[ ! -d "${RUNTIME_CARGO_HOME}/registry" ]]; then
+        log "Warning: Corrupted Rust Burn cache in Google Drive (${DRIVE_RUST_ENV_TAR}). Removing and rebuilding after cargo fetch..."
+        rm -f "${DRIVE_RUST_ENV_TAR}"
+        rm -rf "${RUNTIME_CARGO_HOME}/registry"
     fi
 else
     log "Rust Burn environment not found in Google Drive. Will populate after cargo fetch..."
+fi
+
+if [[ -d "${RUNTIME_CARGO_HOME}/bin" ]]; then
+    export PATH="${RUNTIME_CARGO_HOME}/bin:${PATH}"
 fi
 
 log "Using rustc: $(rustc --version) | cargo: $(cargo --version)"
@@ -139,7 +168,13 @@ if [[ ! -s "${DRIVE_RUST_ENV_TAR}" ]]; then
     cargo fetch
     C_HOME="${CARGO_HOME:-${HOME}/.cargo}"
     if [[ -d "${C_HOME}/registry" ]]; then
-        tar -czf "${DRIVE_RUST_ENV_TAR}" -C "${C_HOME}" registry
+        tmp_runtime_tar="${RUNTIME_DIR}/rust-burn-cargo-cache.tar.gz.tmp"
+        tmp_drive_tar="${DRIVE_RUST_ENV_TAR}.tmp"
+        rm -f "${tmp_runtime_tar}" "${tmp_drive_tar}"
+        tar -czf "${tmp_runtime_tar}" -C "${C_HOME}" registry
+        cp -f "${tmp_runtime_tar}" "${tmp_drive_tar}"
+        mv -f "${tmp_drive_tar}" "${DRIVE_RUST_ENV_TAR}"
+        rm -f "${tmp_runtime_tar}"
         log "Saved Rust Burn cargo cache to Google Drive: ${DRIVE_RUST_ENV_TAR}"
     fi
 fi

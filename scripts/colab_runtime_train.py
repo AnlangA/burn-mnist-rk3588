@@ -17,9 +17,11 @@ Workflow:
 # # Rust Burn MNIST Training Runtime (Google Drive Cache + RK3588 CPU/GPU Export)
 
 # %%
+import gzip
 import os
 import pathlib
 import shutil
+import struct
 import subprocess
 import sys
 import tarfile
@@ -61,13 +63,38 @@ def mount_google_drive() -> pathlib.Path:
         from google.colab import drive  # type: ignore
 
         drive.mount("/content/drive", force_remount=False)
+    except Exception:  # noqa: BLE001
+        pass
+
+    if os.path.isdir("/content/drive/MyDrive"):
         cache_dir = pathlib.Path("/content/drive/MyDrive/burn-mnist-rk3588-cache")
-    except ImportError:
+    else:
         cache_dir = pathlib.Path.home() / ".cache" / "google-drive-burn-mnist"
 
     cache_dir.mkdir(parents=True, exist_ok=True)
     print(f"[notebook] Mounted/initialized Drive cache at: {cache_dir}")
     return cache_dir
+
+
+def is_valid_mnist_gz(path: pathlib.Path, fname: str | None = None) -> bool:
+    """Verify that an MNIST .gz file is a complete gzip stream with a valid IDX magic header."""
+    if not (path.is_file() and path.stat().st_size > 0):
+        return False
+    name = fname or path.name
+    expected_magic = 0x00000803 if "images" in name else 0x00000801
+    try:
+        with gzip.open(path, "rb") as gz:
+            header = gz.read(4)
+            if len(header) != 4:
+                return False
+            (magic,) = struct.unpack(">I", header)
+            if magic != expected_magic:
+                return False
+            while gz.read(65536):
+                pass
+        return True
+    except (OSError, EOFError, gzip.BadGzipFile, struct.error):
+        return False
 
 
 # %%
@@ -78,30 +105,43 @@ def ensure_mnist_dataset(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -
     drive_mnist.mkdir(parents=True, exist_ok=True)
     runtime_mnist.mkdir(parents=True, exist_ok=True)
 
-    all_in_drive = all((drive_mnist / f).is_file() and (drive_mnist / f).stat().st_size > 0 for f in MNIST_FILES)
+    all_in_drive = all(is_valid_mnist_gz(drive_mnist / f, f) for f in MNIST_FILES)
 
     if all_in_drive:
         print(f"[notebook] Found MNIST dataset in Google Drive ({drive_mnist}). Migrating to runtime...")
         for fname in MNIST_FILES:
             shutil.copy2(drive_mnist / fname, runtime_mnist / fname)
     else:
-        print("[notebook] MNIST dataset missing in Google Drive. Downloading and caching to Google Drive...")
+        print("[notebook] MNIST dataset missing or incomplete in Google Drive. Downloading and caching to Google Drive...")
         for fname in MNIST_FILES:
             dest = runtime_mnist / fname
-            if not (dest.is_file() and dest.stat().st_size > 0):
+            drive_dest = drive_mnist / fname
+            if is_valid_mnist_gz(drive_dest, fname):
+                shutil.copy2(drive_dest, dest)
+                continue
+            if not is_valid_mnist_gz(dest, fname):
+                dest.unlink(missing_ok=True)
+                tmp_dest = dest.with_suffix(dest.suffix + ".tmp")
                 downloaded = False
                 for base in MNIST_MIRRORS:
                     url = f"{base}/{fname}"
                     try:
                         print(f"  Downloading {url} -> {dest}")
-                        urllib.request.urlretrieve(url, dest)
+                        tmp_dest.unlink(missing_ok=True)
+                        urllib.request.urlretrieve(url, tmp_dest)
+                        if not is_valid_mnist_gz(tmp_dest, fname):
+                            raise RuntimeError(f"Downloaded file {tmp_dest} failed IDX/gzip verification")
+                        tmp_dest.replace(dest)
                         downloaded = True
                         break
                     except Exception as err:  # noqa: BLE001
+                        tmp_dest.unlink(missing_ok=True)
                         print(f"  Mirror failed ({url}): {err}")
                 if not downloaded:
                     raise RuntimeError(f"Failed to download {fname} from all mirrors")
-            shutil.copy2(dest, drive_mnist / fname)
+            tmp_drive = drive_dest.with_suffix(drive_dest.suffix + ".tmp")
+            shutil.copy2(dest, tmp_drive)
+            tmp_drive.replace(drive_dest)
         print(f"[notebook] Cached MNIST dataset to Google Drive: {drive_mnist}")
 
     return runtime_mnist
@@ -158,10 +198,23 @@ def ensure_rust_burn_env(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -
 
     if drive_env_tar.is_file() and drive_env_tar.stat().st_size > 0:
         print(f"[notebook] Found Rust Burn environment in Google Drive ({drive_env_tar}). Migrating to runtime...")
-        with tarfile.open(drive_env_tar, "r:gz") as tar:
-            tar.extractall(runtime_cargo_home, filter="data")
+        try:
+            with tarfile.open(drive_env_tar, "r:gz") as tar:
+                tar.extractall(runtime_cargo_home, filter="data")
+            if not (runtime_cargo_home / "registry").is_dir():
+                raise tarfile.ReadError("Archive missing expected 'registry' directory")
+        except (tarfile.TarError, EOFError, OSError) as err:
+            print(
+                f"[notebook] Warning: Corrupted Rust Burn cache in Google Drive "
+                f"({drive_env_tar}: {err}). Removing and rebuilding after cargo fetch..."
+            )
+            drive_env_tar.unlink(missing_ok=True)
+            shutil.rmtree(runtime_cargo_home / "registry", ignore_errors=True)
     else:
         print("[notebook] Rust Burn cache not yet in Google Drive. Will populate after cargo fetch...")
+
+    if (runtime_cargo_home / "bin").is_dir():
+        env["PATH"] = f"{runtime_cargo_home / 'bin'}:{env.get('PATH', '')}"
 
     return env
 
@@ -208,8 +261,15 @@ def clone_and_train(
         cargo_home = pathlib.Path(env.get("CARGO_HOME", pathlib.Path.home() / ".cargo"))
         registry_dir = cargo_home / "registry"
         if registry_dir.is_dir():
-            with tarfile.open(drive_env_tar, "w:gz") as tar:
+            tmp_runtime_tar = runtime_dir / "rust-burn-cargo-cache.tar.gz.tmp"
+            tmp_drive_tar = drive_cache / "rust-burn-cargo-cache.tar.gz.tmp"
+            tmp_runtime_tar.unlink(missing_ok=True)
+            tmp_drive_tar.unlink(missing_ok=True)
+            with tarfile.open(tmp_runtime_tar, "w:gz") as tar:
                 tar.add(registry_dir, arcname="registry")
+            shutil.copy2(tmp_runtime_tar, tmp_drive_tar)
+            tmp_drive_tar.replace(drive_env_tar)
+            tmp_runtime_tar.unlink(missing_ok=True)
             print(f"[notebook] Archived Rust Burn environment to Google Drive: {drive_env_tar}")
 
     backend = detect_default_backend(env)
