@@ -273,8 +273,7 @@ fn run_npu_backend_bench(
             times_ms.push(t0.elapsed().as_secs_f64() * 1000.0);
         }
         let npu_after_ns = read_rknpu_busy_ns();
-        let rknpu_hw_total_ms =
-            (npu_after_ns.saturating_sub(npu_before_ns) as f64) / 1_000_000.0;
+        let rknpu_hw_total_ms = (npu_after_ns.saturating_sub(npu_before_ns) as f64) / 1_000_000.0;
         let rknpu_hw_per_batch_ms = rknpu_hw_total_ms / (iters as f64);
 
         times_ms.sort_by(|a, b| a.total_cmp(b));

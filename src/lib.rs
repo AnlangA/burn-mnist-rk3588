@@ -6,11 +6,12 @@ pub mod npu;
 #[cfg(test)]
 mod tests {
     use crate::bench::{digit_from_filename, percentile};
-    use crate::data::{
-        MNIST_MEAN, MNIST_STD, MnistSample, MnistSplit, decode_png_bytes_as_mnist_28x28,
-        normalize_pixel,
-    };
-    use crate::model::{BackendKind, MnistCnn, resolve_device};
+    use crate::data::{MNIST_MEAN, MNIST_STD, decode_png_bytes_as_mnist_28x28, normalize_pixel};
+    #[cfg(any(feature = "cpu", feature = "gpu"))]
+    use crate::data::{MnistSample, MnistSplit};
+    use crate::model::BackendKind;
+    #[cfg(any(feature = "cpu", feature = "gpu"))]
+    use crate::model::{MnistCnn, resolve_device};
     use crate::npu::{
         RKNB_MAGIC, RknbProfileEntry, parse_rknb_bundle, prediction_from_probabilities,
         read_sysfs_u64, resolve_rknn_model_path, softmax_row_10,
@@ -19,6 +20,7 @@ mod tests {
     use std::io::Write;
     use std::path::Path;
 
+    #[cfg(any(feature = "cpu", feature = "gpu"))]
     fn test_device() -> burn::tensor::Device {
         #[cfg(feature = "cpu")]
         {
@@ -94,6 +96,7 @@ mod tests {
         assert_eq!(digit_from_filename(Path::new("photo.png")), None);
     }
 
+    #[cfg(any(feature = "cpu", feature = "gpu"))]
     #[test]
     fn batch_edge_cases_and_shapes() {
         let device = test_device();
@@ -116,6 +119,7 @@ mod tests {
         assert_eq!(lbls.dims(), [2]);
     }
 
+    #[cfg(any(feature = "cpu", feature = "gpu"))]
     #[test]
     fn model_forward_and_burnpack_roundtrip() {
         let device = test_device();
@@ -279,4 +283,3 @@ mod tests {
         }
     }
 }
-

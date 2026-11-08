@@ -251,7 +251,7 @@ if [[ "${DEPLOY_AND_BENCH}" -eq 1 ]]; then
         export PKG_CONFIG_LIBDIR_aarch64_unknown_linux_gnu=\$DISPLAY_SYSROOT/usr/lib/aarch64-linux-gnu/pkgconfig:\$DISPLAY_SYSROOT/usr/share/pkgconfig && \
         export PKG_CONFIG_PATH_aarch64_unknown_linux_gnu= && \
         R=/tmp/burn-probe/target/aarch64-unknown-linux-gnu/release && \
-        if [[ ! -x \"\$R/digit-recognizer-cpu\" || ! -x \"\$R/digit-recognizer-gpu\" || ! -x \"\$R/digit-recognizer-npu\" || '${REMOTE_APP_DIR}/src/main.rs' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_APP_DIR}/src/model.rs' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_APP_DIR}/ui/digit-recognizer.slint' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_CRATE_DIR}/src/npu.rs' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_CRATE_DIR}/src/model.rs' -nt \"\$R/digit-recognizer-npu\" ]]; then \
+        if [[ ! -x \"\$R/digit-recognizer-cpu\" || ! -x \"\$R/digit-recognizer-gpu\" || ! -x \"\$R/digit-recognizer-npu\" || '${REMOTE_APP_DIR}/src/main.rs' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_APP_DIR}/src/model.rs' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_APP_DIR}/ui/digit-recognizer.slint' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_MODEL_DIR}/mnist_cnn.bpk' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_CRATE_DIR}/src/npu.rs' -nt \"\$R/digit-recognizer-npu\" || '${REMOTE_CRATE_DIR}/src/model.rs' -nt \"\$R/digit-recognizer-npu\" ]]; then \
             cargo build --manifest-path '${REMOTE_APP_DIR}/Cargo.toml' --release --target aarch64-unknown-linux-gnu --no-default-features --features cpu && \
             cp -f \"\$R/digit-recognizer\" \"\$R/digit-recognizer-cpu\" && \
             cargo build --manifest-path '${REMOTE_APP_DIR}/Cargo.toml' --release --target aarch64-unknown-linux-gnu --no-default-features --features gpu && \
@@ -282,30 +282,46 @@ ensure_npu_runtime_permissions() {
     if [[ -w /sys/bus/platform/devices/fb000000.gpu/profiling ]]; then
         echo 3 > /sys/bus/platform/devices/fb000000.gpu/profiling
     fi
+    if [[ -d /etc/modules-load.d ]]; then
+        echo rknpu > /etc/modules-load.d/rknpu.conf
+        chmod 0644 /etc/modules-load.d/rknpu.conf
+    fi
+    if [[ -d /etc/udev/rules.d ]]; then
+        cat <<'UDEV_EOF' > /etc/udev/rules.d/99-rknpu.rules
+KERNEL=="rknpu", SYMLINK+="dri/renderD129", GROUP="render", MODE="0666"
+SUBSYSTEM=="drm", KERNEL=="renderD*", GROUP="render", MODE="0666"
+UDEV_EOF
+        chmod 0644 /etc/udev/rules.d/99-rknpu.rules
+    fi
     if [[ ! -c /dev/rknpu ]]; then
         modprobe rknpu 2>/dev/null || true
     fi
     if [[ -c /dev/rknpu ]]; then
         chgrp render /dev/rknpu 2>/dev/null || true
         chmod 0666 /dev/rknpu 2>/dev/null || true
+        if [[ -d /dev/dri && ! -e /dev/dri/renderD129 ]]; then
+            ln -sf /dev/rknpu /dev/dri/renderD129
+        fi
     fi
     if [[ -e /dev/dri/renderD129 ]]; then
-        chgrp render /dev/dri/renderD129 2>/dev/null || true
+        chgrp -h render /dev/dri/renderD129 2>/dev/null || true
         chmod 0666 /dev/dri/renderD129 2>/dev/null || true
     fi
     if [[ -f /usr/lib/librknnrt.so ]]; then
         chmod 0755 /usr/lib/librknnrt.so 2>/dev/null || true
     fi
-    if [[ -d /etc/udev/rules.d ]]; then
-        cat <<'UDEV_EOF' > /etc/udev/rules.d/99-rknpu.rules
-KERNEL=="rknpu", GROUP="render", MODE="0666"
-SUBSYSTEM=="drm", KERNEL=="renderD*", GROUP="render", MODE="0666"
-UDEV_EOF
-        chmod 0644 /etc/udev/rules.d/99-rknpu.rules
+    if [[ -f "${STAGING_DIR}/slint-wait-display.sh" ]] && ! cmp -s "${STAGING_DIR}/slint-wait-display.sh" /usr/local/libexec/slint-wait-display 2>/dev/null; then
+        install -D -m 0755 "${STAGING_DIR}/slint-wait-display.sh" /usr/local/libexec/slint-wait-display
+    fi
+    if [[ -f "${STAGING_DIR}/digit-recognizer.service" ]] && ! cmp -s "${STAGING_DIR}/digit-recognizer.service" /etc/systemd/system/digit-recognizer.service 2>/dev/null; then
+        install -m 0644 "${STAGING_DIR}/digit-recognizer.service" /etc/systemd/system/digit-recognizer.service
+        systemctl daemon-reload
     fi
     if [[ -f /etc/default/digit-recognizer ]]; then
         if grep -q '^DIGIT_RECOGNIZER_BACKEND=' /etc/default/digit-recognizer; then
-            sed -i 's/^DIGIT_RECOGNIZER_BACKEND=.*/DIGIT_RECOGNIZER_BACKEND=npu/' /etc/default/digit-recognizer
+            if ! grep -qE '^DIGIT_RECOGNIZER_BACKEND=(npu|npu-int8|rknn|rknpu|npu-fp16|rknn-fp16|rknn-int8|int8)$' /etc/default/digit-recognizer; then
+                sed -i 's/^DIGIT_RECOGNIZER_BACKEND=.*/DIGIT_RECOGNIZER_BACKEND=npu/' /etc/default/digit-recognizer
+            fi
         else
             echo 'DIGIT_RECOGNIZER_BACKEND=npu' >> /etc/default/digit-recognizer
         fi
@@ -530,21 +546,17 @@ deploy_staged() {
         fi
         ln -sf /opt/burn-mnist-rk3588/npu/digit-recognizer-npu /usr/local/bin/digit-recognizer-npu
     fi
-    if [[ -f /opt/burn-mnist-rk3588/model/mnist_cnn.rknn ]] && ! cmp -s /opt/burn-mnist-rk3588/model/mnist_cnn.rknn /usr/share/digit-recognizer/model/mnist_cnn.rknn 2>/dev/null; then
-        install -m 0644 /opt/burn-mnist-rk3588/model/mnist_cnn.rknn /usr/share/digit-recognizer/model/mnist_cnn.rknn.next
-        mv -f /usr/share/digit-recognizer/model/mnist_cnn.rknn.next /usr/share/digit-recognizer/model/mnist_cnn.rknn
-    fi
-    if [[ -f /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn ]] && ! cmp -s /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn /usr/share/digit-recognizer/model/mnist_cnn_int8.rknn 2>/dev/null; then
-        install -m 0644 /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn /usr/share/digit-recognizer/model/mnist_cnn_int8.rknn.next
-        mv -f /usr/share/digit-recognizer/model/mnist_cnn_int8.rknn.next /usr/share/digit-recognizer/model/mnist_cnn_int8.rknn
+    for m in mnist_cnn.bpk mnist_cnn.safetensors mnist_cnn.onnx mnist_cnn.rknn mnist_cnn_int8.rknn; do
+        if [[ -f "/opt/burn-mnist-rk3588/model/${m}" ]] && ! cmp -s "/opt/burn-mnist-rk3588/model/${m}" "/usr/share/digit-recognizer/model/${m}" 2>/dev/null; then
+            install -m 0644 "/opt/burn-mnist-rk3588/model/${m}" "/usr/share/digit-recognizer/model/${m}.next"
+            mv -f "/usr/share/digit-recognizer/model/${m}.next" "/usr/share/digit-recognizer/model/${m}"
+        fi
+    done
+    if [[ -f /usr/share/digit-recognizer/model/mnist_cnn.rknn ]]; then
+        ln -sf mnist_cnn.rknn /usr/share/digit-recognizer/model/mnist_cnn_fp16.rknn
     fi
     cp -f /usr/share/digit-recognizer/images/*.png /opt/burn-mnist-rk3588/images/ 2>/dev/null || true
     ensure_npu_runtime_permissions
-
-    if [[ -f /opt/burn-mnist-rk3588/model/mnist_cnn.bpk ]] && ! cmp -s /opt/burn-mnist-rk3588/model/mnist_cnn.bpk /usr/share/digit-recognizer/model/mnist_cnn.bpk 2>/dev/null; then
-        install -m 0644 /opt/burn-mnist-rk3588/model/mnist_cnn.bpk /usr/share/digit-recognizer/model/mnist_cnn.bpk.next
-        mv -f /usr/share/digit-recognizer/model/mnist_cnn.bpk.next /usr/share/digit-recognizer/model/mnist_cnn.bpk
-    fi
 
     if verify_rendering 0 && is_npu_binary /usr/local/bin/digit-recognizer && cmp -s "${staged_bin}" /usr/local/bin/digit-recognizer 2>/dev/null; then
         cp -af /usr/local/bin/digit-recognizer "${BACKUP_DIR}/digit-recognizer"
@@ -587,12 +599,14 @@ verify_sha1() {
     local expected_onnx="$3"
     local expected_rknn="$4"
     local expected_rknn_int8="$5"
-    sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn.bpk /usr/share/digit-recognizer/model/mnist_cnn.bpk /opt/burn-mnist-rk3588/model/mnist_cnn.safetensors /opt/burn-mnist-rk3588/model/mnist_cnn.onnx /opt/burn-mnist-rk3588/model/mnist_cnn.rknn /usr/share/digit-recognizer/model/mnist_cnn.rknn /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn /usr/share/digit-recognizer/model/mnist_cnn_int8.rknn
-    local bpk1 bpk2 safe1 onnx1 rknn1 rknn2 int8_1 int8_2
+    sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn.bpk /usr/share/digit-recognizer/model/mnist_cnn.bpk /opt/burn-mnist-rk3588/model/mnist_cnn.safetensors /usr/share/digit-recognizer/model/mnist_cnn.safetensors /opt/burn-mnist-rk3588/model/mnist_cnn.onnx /usr/share/digit-recognizer/model/mnist_cnn.onnx /opt/burn-mnist-rk3588/model/mnist_cnn.rknn /usr/share/digit-recognizer/model/mnist_cnn.rknn /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn /usr/share/digit-recognizer/model/mnist_cnn_int8.rknn
+    local bpk1 bpk2 safe1 safe2 onnx1 onnx2 rknn1 rknn2 int8_1 int8_2
     bpk1="$(sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn.bpk | awk '{print $1}')"
     bpk2="$(sha1sum /usr/share/digit-recognizer/model/mnist_cnn.bpk | awk '{print $1}')"
     safe1="$(sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn.safetensors | awk '{print $1}')"
+    safe2="$(sha1sum /usr/share/digit-recognizer/model/mnist_cnn.safetensors | awk '{print $1}')"
     onnx1="$(sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn.onnx | awk '{print $1}')"
+    onnx2="$(sha1sum /usr/share/digit-recognizer/model/mnist_cnn.onnx | awk '{print $1}')"
     rknn1="$(sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn.rknn | awk '{print $1}')"
     rknn2="$(sha1sum /usr/share/digit-recognizer/model/mnist_cnn.rknn | awk '{print $1}')"
     int8_1="$(sha1sum /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn | awk '{print $1}')"
@@ -600,7 +614,9 @@ verify_sha1() {
     [[ "${bpk1}" == "${expected_bpk}" ]] || { log_guard "SHA1 mismatch on /opt/burn-mnist-rk3588/model/mnist_cnn.bpk: ${bpk1} != ${expected_bpk}"; return 1; }
     [[ "${bpk2}" == "${expected_bpk}" ]] || { log_guard "SHA1 mismatch on /usr/share/digit-recognizer/model/mnist_cnn.bpk: ${bpk2} != ${expected_bpk}"; return 1; }
     [[ "${safe1}" == "${expected_safe}" ]] || { log_guard "SHA1 mismatch on /opt/burn-mnist-rk3588/model/mnist_cnn.safetensors: ${safe1} != ${expected_safe}"; return 1; }
+    [[ "${safe2}" == "${expected_safe}" ]] || { log_guard "SHA1 mismatch on /usr/share/digit-recognizer/model/mnist_cnn.safetensors: ${safe2} != ${expected_safe}"; return 1; }
     [[ "${onnx1}" == "${expected_onnx}" ]] || { log_guard "SHA1 mismatch on /opt/burn-mnist-rk3588/model/mnist_cnn.onnx: ${onnx1} != ${expected_onnx}"; return 1; }
+    [[ "${onnx2}" == "${expected_onnx}" ]] || { log_guard "SHA1 mismatch on /usr/share/digit-recognizer/model/mnist_cnn.onnx: ${onnx2} != ${expected_onnx}"; return 1; }
     [[ "${rknn1}" == "${expected_rknn}" ]] || { log_guard "SHA1 mismatch on /opt/burn-mnist-rk3588/model/mnist_cnn.rknn: ${rknn1} != ${expected_rknn}"; return 1; }
     [[ "${rknn2}" == "${expected_rknn}" ]] || { log_guard "SHA1 mismatch on /usr/share/digit-recognizer/model/mnist_cnn.rknn: ${rknn2} != ${expected_rknn}"; return 1; }
     [[ "${int8_1}" == "${expected_rknn_int8}" ]] || { log_guard "SHA1 mismatch on /opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn: ${int8_1} != ${expected_rknn_int8}"; return 1; }
@@ -654,6 +670,8 @@ scp \"\${ssh_opts[@]}\" \
     /tmp/burn-probe/target/aarch64-unknown-linux-gnu/release/digit-recognizer-gpu \
     /tmp/burn-probe/target/aarch64-unknown-linux-gnu/release/digit-recognizer-npu \
     \"\${DISPLAY_OUT:-\$BSP_BUILD/slint}/aarch64-unknown-linux-gnu/release/digit-recognizer\" \
+    board/digit-recognizer.service \
+    board/slint-wait-display.sh \
     \"\$BOARD_HOST:/opt/burn-mnist-rk3588/staging/\""
 
     BOARD_GUARD_INSTALLED=1

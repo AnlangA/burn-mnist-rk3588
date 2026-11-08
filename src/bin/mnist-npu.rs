@@ -67,6 +67,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+    if reports.is_empty() {
+        return Err("all requested NPU backends failed".into());
+    }
 
     if let Some(json_path) = output_json {
         if let Some(parent) = json_path.parent()

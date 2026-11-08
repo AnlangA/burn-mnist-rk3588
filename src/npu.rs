@@ -213,7 +213,11 @@ pub fn parse_rknb_bundle(data: &[u8], default_int8: bool) -> Result<Vec<RknbProf
             serde_json::from_slice(&data[manifest_offset..manifest_offset + manifest_len])
                 .map_err(|e| format!("failed to parse RKNB manifest JSON: {e}"))?;
         for p in &manifest.profiles {
-            if p.offset.checked_add(p.size).is_none_or(|end| end > data.len()) || p.size == 0 {
+            if p.offset
+                .checked_add(p.size)
+                .is_none_or(|end| end > data.len())
+                || p.size == 0
+            {
                 return Err(format!("invalid RKNB profile slice bounds for {}", p.name));
             }
         }
@@ -269,6 +273,7 @@ pub fn resolve_rknn_model_path(model_path: &Path, prefer_int8_standalone: bool) 
             parent.join("mnist_cnn_int8.rknn"),
             PathBuf::from("artifacts/mnist_cnn_int8.rknn"),
             PathBuf::from("/opt/burn-mnist-rk3588/model/mnist_cnn_int8.rknn"),
+            PathBuf::from("/usr/share/digit-recognizer/model/mnist_cnn_int8.rknn"),
         ];
         for c in &int8_cands {
             if c.is_file() {
@@ -357,7 +362,12 @@ impl RknnSingleCtx {
     /// Pack `count` (<= `self.batch_size`) images of 784 floats (`28x28`) into `self.in_buf`,
     /// execute `rknn_inputs_set` + `rknn_run` + `rknn_outputs_get`, and write softmax
     /// probabilities into `dst_probs` (`count * 10` floats).
-    fn run_subbatch(&mut self, src_pixels: &[f32], count: usize, dst_probs: &mut [f32]) -> Result<(), String> {
+    fn run_subbatch(
+        &mut self,
+        src_pixels: &[f32],
+        count: usize,
+        dst_probs: &mut [f32],
+    ) -> Result<(), String> {
         let count = count.min(self.batch_size);
         if count == 0 {
             return Ok(());
@@ -404,9 +414,8 @@ impl RknnSingleCtx {
             buf: self.out_buf.as_mut_ptr().cast::<c_void>(),
             size: (self.out_buf.len() * std::mem::size_of::<f32>()) as u32,
         };
-        let ret = unsafe {
-            (self.api.rknn_outputs_get)(self.ctx, 1, &mut out, std::ptr::null_mut())
-        };
+        let ret =
+            unsafe { (self.api.rknn_outputs_get)(self.ctx, 1, &mut out, std::ptr::null_mut()) };
         if ret != 0 {
             return Err(format!("rknn_outputs_get failed with code {ret}"));
         }
@@ -484,8 +493,10 @@ impl PersistentCoreWorker {
                 };
 
                 let res = if count > 0 {
-                    let src = unsafe { std::slice::from_raw_parts(src_ptr as *const f32, count * 784) };
-                    let dst = unsafe { std::slice::from_raw_parts_mut(dst_ptr as *mut f32, count * 10) };
+                    let src =
+                        unsafe { std::slice::from_raw_parts(src_ptr as *const f32, count * 784) };
+                    let dst =
+                        unsafe { std::slice::from_raw_parts_mut(dst_ptr as *mut f32, count * 10) };
                     core_ctx.run_subbatch(src, count, dst)
                 } else {
                     Ok(())
@@ -582,7 +593,12 @@ impl RknnThreeCoreTier {
     }
 
     /// Execute up to `3 * sub_batch_size` samples across Core 0, Core 1, and Core 2 in parallel.
-    fn run_wave(&mut self, src_pixels: &[f32], total_count: usize, dst_probs: &mut [f32]) -> Result<(), String> {
+    fn run_wave(
+        &mut self,
+        src_pixels: &[f32],
+        total_count: usize,
+        dst_probs: &mut [f32],
+    ) -> Result<(), String> {
         let cap = self.sub_batch_size;
         let c0 = total_count.div_ceil(3).min(cap);
         let rem1 = total_count.saturating_sub(c0);
@@ -633,12 +649,8 @@ pub struct RknnEngine {
 impl RknnEngine {
     pub fn load(model_path: &Path, int8_mode: bool) -> Result<Self, String> {
         let resolved_path = resolve_rknn_model_path(model_path, int8_mode);
-        let bundle_bytes = std::fs::read(&resolved_path).map_err(|e| {
-            format!(
-                "failed to read RKNN model {}: {e}",
-                resolved_path.display()
-            )
-        })?;
+        let bundle_bytes = std::fs::read(&resolved_path)
+            .map_err(|e| format!("failed to read RKNN model {}: {e}", resolved_path.display()))?;
         let profiles = parse_rknb_bundle(&bundle_bytes, int8_mode)?;
         let api = RknnApi::load()?;
 
@@ -668,7 +680,9 @@ impl RknnEngine {
                         "RK3588 NPU 3-Core ({dtype_label}, librknnrt {rt_short}, drv {drv_ver}, {freq_mhz} MHz)"
                     )
                 } else {
-                    format!("RK3588 NPU 3-Core ({dtype_label}, librknnrt {rt_short}, drv {drv_ver})")
+                    format!(
+                        "RK3588 NPU 3-Core ({dtype_label}, librknnrt {rt_short}, drv {drv_ver})"
+                    )
                 }
             }
             None => format!("RK3588 NPU 3-Core ({dtype_label})"),
@@ -831,7 +845,11 @@ pub fn softmax_row_10(logits: &[f32]) -> [f32; 10] {
     let mut probs = [0.0f32; 10];
     let mut sum = 0.0f32;
     for (i, &x) in logits.iter().take(10).enumerate() {
-        let e = if x.is_finite() { (x - max_v).exp() } else { 0.0 };
+        let e = if x.is_finite() {
+            (x - max_v).exp()
+        } else {
+            0.0
+        };
         probs[i] = e;
         sum += e;
     }
