@@ -107,6 +107,32 @@ def ensure_mnist_dataset(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -
     return runtime_mnist
 
 
+def run_cmd(
+    cmd: list[str] | str,
+    *,
+    cwd: pathlib.Path | None = None,
+    env: dict[str, str] | None = None,
+    shell: bool = False,
+) -> None:
+    """Run a subprocess and stream combined stdout/stderr through sys.stdout for Jupyter/Colab."""
+    proc = subprocess.Popen(
+        cmd,
+        cwd=str(cwd) if cwd is not None else None,
+        env=env,
+        shell=shell,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        print(line, end="", flush=True)
+    rc = proc.wait()
+    if rc != 0:
+        raise subprocess.CalledProcessError(rc, cmd)
+
+
 # %%
 def ensure_rust_burn_env(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -> dict[str, str]:
     """Check Google Drive for Rust + Burn environment; migrate if present, else install & cache."""
@@ -117,10 +143,9 @@ def ensure_rust_burn_env(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -
 
     if shutil.which("cargo", path=env.get("PATH")) is None:
         print("[notebook] Installing Rust toolchain via rustup...")
-        subprocess.run(
+        run_cmd(
             "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable",
             shell=True,
-            check=True,
             env=env,
         )
         env["PATH"] = f"{cargo_bin}:{env.get('PATH', '')}"
@@ -168,18 +193,18 @@ def clone_and_train(
     repo_dir = runtime_dir / "burn-mnist-rk3588"
     if (repo_dir / ".git").is_dir():
         print(f"[notebook] Updating existing repo clone at {repo_dir}...")
-        subprocess.run(["git", "-C", str(repo_dir), "fetch", "origin"], check=True, env=env)
-        subprocess.run(["git", "-C", str(repo_dir), "reset", "--hard", "origin/main"], check=True, env=env)
+        run_cmd(["git", "-C", str(repo_dir), "fetch", "origin"], env=env)
+        run_cmd(["git", "-C", str(repo_dir), "reset", "--hard", "origin/main"], env=env)
     else:
         if repo_dir.exists():
             shutil.rmtree(repo_dir)
         print(f"[notebook] Cloning {REPO_URL} into {repo_dir}...")
-        subprocess.run(["git", "clone", REPO_URL, str(repo_dir)], check=True, env=env)
+        run_cmd(["git", "clone", REPO_URL, str(repo_dir)], env=env)
 
     drive_env_tar = drive_cache / "rust-burn-cargo-cache.tar.gz"
     if not (drive_env_tar.is_file() and drive_env_tar.stat().st_size > 0):
         print("[notebook] Fetching Burn crate graph and archiving to Google Drive...")
-        subprocess.run(["cargo", "fetch"], cwd=repo_dir, check=True, env=env)
+        run_cmd(["cargo", "fetch"], cwd=repo_dir, env=env)
         cargo_home = pathlib.Path(env.get("CARGO_HOME", pathlib.Path.home() / ".cargo"))
         registry_dir = cargo_home / "registry"
         if registry_dir.is_dir():
@@ -194,7 +219,7 @@ def clone_and_train(
     artifact_dir = repo_dir / "artifacts"
 
     print(f"[notebook] Running Rust Burn MNIST training (backend={backend}, epochs={epochs})...")
-    subprocess.run(
+    run_cmd(
         [
             "cargo",
             "run",
@@ -216,7 +241,6 @@ def clone_and_train(
             str(lr),
         ],
         cwd=repo_dir,
-        check=True,
         env=env,
     )
 
