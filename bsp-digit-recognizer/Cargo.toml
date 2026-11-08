@@ -13,7 +13,7 @@ gpu = ["burn-mnist-rk3588/gpu"]
 npu = ["burn-mnist-rk3588/npu"]
 
 [dependencies]
-burn-mnist-rk3588 = { path = "../burn-mnist-rk3588", default-features = false }
+burn-mnist-rk3588 = { path = "..", default-features = false }
 slint = { version = "=1.17.1", default-features = false, features = ["std", "compat-1-2", "backend-linuxkms", "renderer-femtovg"] }
 signal-hook = "0.3"
 png = "0.18"
@@ -26,4 +26,4 @@ unsafe_code = "deny"
 
 [patch.crates-io]
 # Same ARGB scanout fixes as slint-dashboard; the board requires them.
-i-slint-backend-linuxkms = { path = "../slint-dashboard/vendor/i-slint-backend-linuxkms" }
+i-slint-backend-linuxkms = { path = "vendor/i-slint-backend-linuxkms" }

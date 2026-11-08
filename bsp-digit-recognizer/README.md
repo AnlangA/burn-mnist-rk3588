@@ -61,7 +61,13 @@ python3 tools/gen_mnist_samples.py assets/images
 
 ## 构建与运行
 
-在 `atk-dlrk3588-bsp` 工程目录下(`app/digit-recognizer` 与 `app/burn-mnist-rk3588` 同级):
+直接在当前仓库的 `bsp-digit-recognizer/` 目录下即可独立编译与运行测试(已内置 `vendor/i-slint-backend-linuxkms`,并通过 `path = ".."` 直接引用父目录的 `burn-mnist-rk3588`):
+
+```sh
+cargo test --manifest-path bsp-digit-recognizer/Cargo.toml
+```
+
+在 `atk-dlrk3588-bsp` 工程目录下(`app/digit-recognizer` 与 `app/burn-mnist-rk3588` 同级,将 `Cargo.toml` 中 `burn-mnist-rk3588` 的 `path` 设为 `"../burn-mnist-rk3588"`):
 
 ```sh
 make display            # 交叉编译(与 slint-dashboard 相同 sysroot)

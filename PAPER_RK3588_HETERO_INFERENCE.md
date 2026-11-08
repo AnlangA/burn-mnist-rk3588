@@ -212,7 +212,7 @@ Table 4 compares initialization overhead, first-inference warmup latency (which 
 | **10k Test Set Steady Eval (`test_set_eval_ms`)** | **`283.64 ms`** (**`280.12 ms`**\*) | **`485.77 ms`** (**`388.41 ms`**\*) | `1,647.67 ms` (`1,651.92 ms`*) | `3,343.89 ms` (`3,336.91 ms`*) | `3,549.23 ms` (`3,524.72 ms`*) |
 | **10k Test Set Accuracy** | **`98.64%`** (`9,864/10k`) | **`98.65%`** (`9,865/10k`) | **`98.66%`** (`9,866/10k`) | **`98.66%`** (`9,866/10k`) | **`98.66%`** (`9,866/10k`) |
 | **20 On-Board PNG Accuracy** | **`95.00%`** (`19/20`) | **`95.00%`** (`19/20`) | **`95.00%`** (`19/20`) | **`95.00%`** (`19/20`) | **`95.00%`** (`19/20`) |
-| **20 PNG Mean Steady Latency** | **`0.165 ms`** (`0.189 ms`*) | **`0.222 ms`** (`0.215 ms`*) | `1.089 ms` (`1.090 ms`*) | `3.190 ms` (`3.267 ms`*) | `6.531 ms` (`6.299 ms`*) |
+| **20 PNG Mean Steady Latency** | **`0.165 ms`** (`0.191 ms`*) | **`0.222 ms`** (`0.215 ms`*) | `1.089 ms` (`1.090 ms`*) | `3.190 ms` (`3.272 ms`*) | `6.551 ms` (`6.300 ms`*) |
 
 *\*Note: Primary values are from isolated standalone binaries (`mnist-npu`, `mnist-cpu`, `mnist-gpu`); parenthesized values (`*`) are from the unified in-process `bench --backend all` run.*
 
@@ -401,6 +401,7 @@ burn-mnist-rk3588/
 │   ├── Cargo.toml
 │   ├── src/{main.rs,model.rs}
 │   ├── ui/{digit-recognizer.slint,fonts/DRHeadingSC-Bold.ttf}
+│   ├── vendor/i-slint-backend-linuxkms/ # Patched LinuxKMS backend with ARGB/XRGB scanout support
 │   ├── tools/{gen_mnist_samples.py,make_heading_font.py}
 │   ├── assets/images/d*.png             # 20 on-board MNIST evaluation PNG samples
 │   └── board/{digit-recognizer.service,digit-recognizer.default,install-digits.sh,slint-wait-display.sh}
@@ -416,10 +417,11 @@ burn-mnist-rk3588/
 ### 6.2 Step-by-Step Reproduction Commands
 
 #### Step 1: Host Unit Tests & Numerical Verification
-Run the full Rust test suite (verifying `MnistCnn` forward shapes, Burnpack/SafeTensors round-trip serialization, `panthor` `fdinfo` deduplication, and `RKNB` multi-profile manifest parsing):
+Run the full Rust test suite for both the core inference crate and the exported Slint KMS UI crate (verifying `MnistCnn` forward shapes, Burnpack/SafeTensors round-trip serialization, `panthor` `fdinfo` deduplication, `RKNB` multi-profile manifest parsing, and deterministic 20-sample PNG inference):
 
 ```bash
 cargo test --release
+cargo test --manifest-path bsp-digit-recognizer/Cargo.toml
 ```
 
 #### Step 2: Re-Training `MnistCnn` and Exporting `.bpk` / `.safetensors` / `.onnx` / `.rknn`
