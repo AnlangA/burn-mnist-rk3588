@@ -6,7 +6,8 @@ use burn::nn::{
 };
 use burn::prelude::*;
 use burn::store::{BurnpackStore, ModuleSnapshot, SafetensorsStore};
-use burn::tensor::{Device, TensorData, activation::softmax};
+pub use burn::tensor::Device;
+use burn::tensor::{TensorData, activation::softmax};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -175,11 +176,11 @@ impl MnistCnn {
     }
 
     pub fn save_burnpack(&self, path: &Path) -> Result<(), String> {
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("failed to create dir {}: {e}", parent.display()))?;
-            }
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("failed to create dir {}: {e}", parent.display()))?;
         }
         let mut store = BurnpackStore::from_file(path)
             .auto_extension(false)
@@ -189,11 +190,11 @@ impl MnistCnn {
     }
 
     pub fn save_safetensors(&self, path: &Path) -> Result<(), String> {
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("failed to create dir {}: {e}", parent.display()))?;
-            }
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("failed to create dir {}: {e}", parent.display()))?;
         }
         let mut store = SafetensorsStore::from_file(path).overwrite(true);
         self.save_into(&mut store)
@@ -247,7 +248,10 @@ impl MnistCnn {
             .try_to_vec::<f32>()
             .map_err(|e| format!("failed to read probabilities tensor: {e:?}"))?;
         if probs_vec.len() != 10 {
-            return Err(format!("expected 10 probabilities, got {}", probs_vec.len()));
+            return Err(format!(
+                "expected 10 probabilities, got {}",
+                probs_vec.len()
+            ));
         }
         let mut probabilities = [0.0f32; 10];
         let mut sum = 0.0f32;
@@ -281,27 +285,58 @@ impl MnistCnn {
     }
 }
 
-/// Read RK3588 Mali-G610 (`panthor` DRM driver) cumulative hardware GPU execution time in nanoseconds
-/// for the current process from `/proc/<pid>/fdinfo`. Returns 0 on non-panthor hosts.
-pub fn read_panthor_gpu_ns() -> u64 {
-    let pid = std::process::id();
-    let mut total = 0u64;
-    if let Ok(entries) = std::fs::read_dir(format!("/proc/{pid}/fdinfo")) {
-        for entry in entries.flatten() {
-            if let Ok(text) = std::fs::read_to_string(entry.path()) {
-                if text.contains("panthor") {
-                    for line in text.lines() {
-                        if let Some(rest) = line.strip_prefix("drm-engine-panthor:") {
-                            if let Some(ns_str) = rest.split_whitespace().next() {
-                                if let Ok(ns) = ns_str.parse::<u64>() {
-                                    total += ns;
-                                }
-                            }
-                        }
-                    }
+/// Parse a directory of Linux `/proc/<pid>/fdinfo` files and sum `drm-engine-panthor`
+/// nanoseconds across unique `drm-client-id` contexts.
+///
+/// Mesa's `PanVK` (Vulkan) and `Panfrost` (OpenGL ES) drivers duplicate the DRM render node
+/// file descriptor multiple times within the same process (sharing the same `drm-client-id`).
+/// Deduplicating by `drm-client-id` avoids counting the same hardware DRM client multiple times.
+pub fn parse_panthor_fdinfo_dir(dir: &Path) -> u64 {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return 0;
+    };
+    let mut clients: std::collections::BTreeMap<String, u64> = std::collections::BTreeMap::new();
+    for entry in entries.flatten() {
+        let Ok(text) = std::fs::read_to_string(entry.path()) else {
+            continue;
+        };
+        let mut is_panthor = false;
+        let mut client_id: Option<String> = None;
+        let mut engine_ns: Option<u64> = None;
+
+        for line in text.lines() {
+            if let Some(rest) = line.strip_prefix("drm-driver:") {
+                if rest.trim() == "panthor" {
+                    is_panthor = true;
                 }
+            } else if let Some(rest) = line.strip_prefix("drm-client-id:") {
+                let id = rest.trim();
+                if !id.is_empty() {
+                    client_id = Some(id.to_string());
+                }
+            } else if let Some(rest) = line.strip_prefix("drm-engine-panthor:")
+                && let Some(ns_str) = rest.split_whitespace().next()
+                && let Ok(ns) = ns_str.parse::<u64>()
+            {
+                engine_ns = Some(ns);
             }
         }
+
+        if is_panthor && let Some(ns) = engine_ns {
+            let key = client_id.unwrap_or_else(|| entry.file_name().to_string_lossy().into_owned());
+            clients
+                .entry(key)
+                .and_modify(|prev| *prev = (*prev).max(ns))
+                .or_insert(ns);
+        }
     }
-    total
+    clients.values().copied().sum()
+}
+
+/// Read RK3588 Mali-G610 (`panthor` DRM driver) cumulative hardware GPU execution time in nanoseconds
+/// for the current process from `/proc/<pid>/fdinfo`, deduplicated by `drm-client-id`.
+/// Returns 0 on non-panthor hosts.
+pub fn read_panthor_gpu_ns() -> u64 {
+    let pid = std::process::id();
+    parse_panthor_fdinfo_dir(Path::new(&format!("/proc/{pid}/fdinfo")))
 }

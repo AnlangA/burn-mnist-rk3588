@@ -12,6 +12,24 @@ default = ["cpu", "gpu"]
 cpu = ["burn/flex", "burn/simd", "burn/rayon"]
 gpu = ["burn/wgpu"]
 
+[[bin]]
+name = "train"
+path = "src/bin/train.rs"
+
+[[bin]]
+name = "bench"
+path = "src/bin/bench.rs"
+
+[[bin]]
+name = "mnist-cpu"
+path = "src/bin/mnist-cpu.rs"
+required-features = ["cpu"]
+
+[[bin]]
+name = "mnist-gpu"
+path = "src/bin/mnist-gpu.rs"
+required-features = ["gpu"]
+
 [dependencies]
 burn = { version = "0.22.1", default-features = false, features = ["std", "optim", "store", "safetensors"] }
 flate2 = "1.1"

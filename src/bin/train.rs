@@ -128,7 +128,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let data_dir = PathBuf::from(parse_arg(&args, "--data-dir").unwrap_or_else(|| "data/mnist".into()));
+    let data_dir =
+        PathBuf::from(parse_arg(&args, "--data-dir").unwrap_or_else(|| "data/mnist".into()));
     let artifact_dir =
         PathBuf::from(parse_arg(&args, "--artifact-dir").unwrap_or_else(|| "artifacts".into()));
     let backend_str = parse_arg(&args, "--backend").unwrap_or_else(|| "cpu".into());
@@ -156,7 +157,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         batch_size,
         lr
     );
-    println!("[train] Loading MNIST dataset from {} ...", data_dir.display());
+    println!(
+        "[train] Loading MNIST dataset from {} ...",
+        data_dir.display()
+    );
     let train_split = load_train_split(Path::new(&data_dir), max_train)?;
     let test_split = load_test_split(Path::new(&data_dir), max_test)?;
     println!(

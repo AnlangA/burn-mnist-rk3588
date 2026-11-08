@@ -30,7 +30,11 @@ impl MnistSplit {
     }
 
     /// Extract a mini-batch `[batch_size, 1, 28, 28]` of images and `[batch_size]` of labels.
-    pub fn batch(&self, indices: &[usize], device: &Device) -> Result<(Tensor<4>, Tensor<1, Int>), String> {
+    pub fn batch(
+        &self,
+        indices: &[usize],
+        device: &Device,
+    ) -> Result<(Tensor<4>, Tensor<1, Int>), String> {
         if indices.is_empty() {
             return Err("batch indices cannot be empty".into());
         }
@@ -39,10 +43,12 @@ impl MnistSplit {
         let mut label_ints = Vec::with_capacity(batch_size);
 
         for &idx in indices {
-            let sample = self
-                .samples
-                .get(idx)
-                .ok_or_else(|| format!("sample index {idx} out of bounds (len={})", self.samples.len()))?;
+            let sample = self.samples.get(idx).ok_or_else(|| {
+                format!(
+                    "sample index {idx} out of bounds (len={})",
+                    self.samples.len()
+                )
+            })?;
             image_floats.extend_from_slice(&sample.pixels);
             label_ints.push(i64::from(sample.label));
         }
@@ -51,10 +57,8 @@ impl MnistSplit {
             TensorData::new(image_floats, [batch_size, 1, 28, 28]),
             device,
         );
-        let targets = Tensor::<1, Int>::from_data(
-            TensorData::new(label_ints, [batch_size]),
-            device,
-        );
+        let targets =
+            Tensor::<1, Int>::from_data(TensorData::new(label_ints, [batch_size]), device);
         Ok((images, targets))
     }
 }
@@ -80,8 +84,7 @@ fn read_maybe_gz(path_gz: &Path, path_raw: &Path) -> Result<Vec<u8>, String> {
             .map_err(|e| format!("failed to gunzip {}: {e}", path_gz.display()))?;
         Ok(buf)
     } else if path_raw.is_file() {
-        std::fs::read(path_raw)
-            .map_err(|e| format!("failed to read {}: {e}", path_raw.display()))
+        std::fs::read(path_raw).map_err(|e| format!("failed to read {}: {e}", path_raw.display()))
     } else {
         Err(format!(
             "missing MNIST file: checked {} and {}",
@@ -125,16 +128,22 @@ pub fn load_idx_split(
     let cols = read_be_u32(&img_bytes, 12)? as usize;
 
     if img_magic != 2051 {
-        return Err(format!("invalid MNIST image magic {img_magic}, expected 2051"));
+        return Err(format!(
+            "invalid MNIST image magic {img_magic}, expected 2051"
+        ));
     }
     if rows != 28 || cols != 28 {
-        return Err(format!("unexpected MNIST dimensions {rows}x{cols}, expected 28x28"));
+        return Err(format!(
+            "unexpected MNIST dimensions {rows}x{cols}, expected 28x28"
+        ));
     }
 
     let lbl_magic = read_be_u32(&lbl_bytes, 0)?;
     let lbl_count = read_be_u32(&lbl_bytes, 4)? as usize;
     if lbl_magic != 2049 {
-        return Err(format!("invalid MNIST label magic {lbl_magic}, expected 2049"));
+        return Err(format!(
+            "invalid MNIST label magic {lbl_magic}, expected 2049"
+        ));
     }
     if img_count != lbl_count {
         return Err(format!(
@@ -214,8 +223,8 @@ fn paeth_predictor(a: u8, b: u8, c: u8) -> u8 {
 /// Decode an 8-bit PNG file (grayscale, RGB, gray+alpha, or RGBA) and downsample
 /// it to a normalized 28x28 MNIST input array `[f32; 784]`.
 pub fn load_png_as_mnist_28x28(path: &Path) -> Result<[f32; 784], String> {
-    let bytes = std::fs::read(path)
-        .map_err(|e| format!("failed to read PNG {}: {e}", path.display()))?;
+    let bytes =
+        std::fs::read(path).map_err(|e| format!("failed to read PNG {}: {e}", path.display()))?;
     decode_png_bytes_as_mnist_28x28(&bytes)
 }
 

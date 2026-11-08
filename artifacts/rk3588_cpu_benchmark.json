@@ -1,0 +1,231 @@
+[
+  {
+    "backend_requested": "cpu",
+    "backend_resolved": "Burn Flex CPU (SIMD + Rayon)",
+    "model_load_ms": 0.561477,
+    "single_sample_warmup_ms": 7.198448,
+    "test_set_samples": 10000,
+    "test_set_accuracy": 0.9866,
+    "test_set_warmup_ms": 55.780437,
+    "test_set_eval_ms": 1667.719772,
+    "png_samples_total": 20,
+    "png_samples_correct": 19,
+    "png_samples_accuracy": 0.95,
+    "batch_benchmarks": [
+      {
+        "batch_size": 1,
+        "iterations": 100,
+        "warmup_iterations": 20,
+        "mean_batch_ms": 0.9723585999999999,
+        "p50_batch_ms": 1.026701,
+        "p95_batch_ms": 1.215123,
+        "p99_batch_ms": 1.389546,
+        "per_sample_ms": 0.9723585999999999,
+        "throughput_samples_per_sec": 1028.4271666852128,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0
+      },
+      {
+        "batch_size": 16,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 3.8751129599999996,
+        "p50_batch_ms": 3.84517,
+        "p95_batch_ms": 4.368145,
+        "p99_batch_ms": 4.667406,
+        "per_sample_ms": 0.24219455999999998,
+        "throughput_samples_per_sec": 4128.911896287019,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0
+      },
+      {
+        "batch_size": 64,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 13.792886840000003,
+        "p50_batch_ms": 14.165846,
+        "p95_batch_ms": 16.543300000000002,
+        "p99_batch_ms": 16.782099000000002,
+        "per_sample_ms": 0.21551385687500005,
+        "throughput_samples_per_sec": 4640.072868168328,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0
+      },
+      {
+        "batch_size": 256,
+        "iterations": 25,
+        "warmup_iterations": 5,
+        "mean_batch_ms": 44.12845988,
+        "p50_batch_ms": 45.191168,
+        "p95_batch_ms": 49.065798,
+        "p99_batch_ms": 51.953768,
+        "per_sample_ms": 0.17237679640625,
+        "throughput_samples_per_sec": 5801.244836011711,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0
+      }
+    ],
+    "png_predictions": [
+      {
+        "file_name": "d0_0003.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.9999638,
+        "correct": true,
+        "latency_ms": 0.957573
+      },
+      {
+        "file_name": "d0_0010.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.9999881,
+        "correct": true,
+        "latency_ms": 0.59677
+      },
+      {
+        "file_name": "d1_0002.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.9996221,
+        "correct": true,
+        "latency_ms": 0.45939
+      },
+      {
+        "file_name": "d1_0005.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99986666,
+        "correct": true,
+        "latency_ms": 1.0745360000000002
+      },
+      {
+        "file_name": "d2_0001.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.999978,
+        "correct": true,
+        "latency_ms": 1.23
+      },
+      {
+        "file_name": "d2_0035.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99999374,
+        "correct": true,
+        "latency_ms": 1.087078
+      },
+      {
+        "file_name": "d3_0018.png",
+        "expected_digit": 3,
+        "predicted_digit": 8,
+        "confidence": 0.94388646,
+        "correct": false,
+        "latency_ms": 0.9788659999999999
+      },
+      {
+        "file_name": "d3_0030.png",
+        "expected_digit": 3,
+        "predicted_digit": 3,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.964865
+      },
+      {
+        "file_name": "d4_0004.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9999733,
+        "correct": true,
+        "latency_ms": 1.1410369999999999
+      },
+      {
+        "file_name": "d4_0006.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9934369,
+        "correct": true,
+        "latency_ms": 1.093495
+      },
+      {
+        "file_name": "d5_0008.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.8467235,
+        "correct": true,
+        "latency_ms": 1.078619
+      },
+      {
+        "file_name": "d5_0015.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.9992177,
+        "correct": true,
+        "latency_ms": 1.17808
+      },
+      {
+        "file_name": "d6_0011.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.99998546,
+        "correct": true,
+        "latency_ms": 1.20579
+      },
+      {
+        "file_name": "d6_0021.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999641,
+        "correct": true,
+        "latency_ms": 1.027867
+      },
+      {
+        "file_name": "d7_0000.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999905,
+        "correct": true,
+        "latency_ms": 1.001034
+      },
+      {
+        "file_name": "d7_0017.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999285,
+        "correct": true,
+        "latency_ms": 1.12558
+      },
+      {
+        "file_name": "d8_0061.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 1.213666
+      },
+      {
+        "file_name": "d8_0084.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.999995,
+        "correct": true,
+        "latency_ms": 1.087369
+      },
+      {
+        "file_name": "d9_0007.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.99951744,
+        "correct": true,
+        "latency_ms": 1.139579
+      },
+      {
+        "file_name": "d9_0009.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.99939865,
+        "correct": true,
+        "latency_ms": 0.9514480000000001
+      }
+    ]
+  }
+]
