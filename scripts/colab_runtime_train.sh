@@ -13,7 +13,13 @@ GDRIVE_CACHE_DIR="${GDRIVE_CACHE_DIR:-/content/drive/MyDrive/burn-mnist-rk3588-c
 RUNTIME_DIR="${RUNTIME_DIR:-/tmp/burn-mnist-runtime}"
 REPO_URL="${REPO_URL:-https://github.com/AnlangA/burn-mnist-rk3588.git}"
 LOCAL_REPO_OUT="${LOCAL_REPO_OUT:-}"
-BACKEND="${BACKEND:-gpu}"
+if [[ -z "${BACKEND:-}" ]]; then
+    if (command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1) || [[ -d /dev/dri ]]; then
+        BACKEND="gpu"
+    else
+        BACKEND="cpu"
+    fi
+fi
 EPOCHS="${EPOCHS:-5}"
 BATCH_SIZE="${BATCH_SIZE:-128}"
 LR="${LR:-0.001}"
@@ -92,6 +98,12 @@ if ! command -v cargo >/dev/null 2>&1; then
     fi
 fi
 
+if ! command -v cargo >/dev/null 2>&1; then
+    log "Installing Rust toolchain via rustup..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+    export PATH="${HOME}/.cargo/bin:${PATH}"
+fi
+
 if [[ -s "${DRIVE_RUST_ENV_TAR}" ]]; then
     log "Rust Burn environment cache found in Google Drive (${DRIVE_RUST_ENV_TAR}). Migrating to runtime..."
     mkdir -p "${RUNTIME_CARGO_HOME}"
@@ -101,11 +113,7 @@ if [[ -s "${DRIVE_RUST_ENV_TAR}" ]]; then
         export PATH="${RUNTIME_CARGO_HOME}/bin:${PATH}"
     fi
 else
-    log "Rust Burn environment not found in Google Drive. Setting up Rust toolchain and caching to Drive..."
-    if ! command -v cargo >/dev/null 2>&1; then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-        export PATH="${HOME}/.cargo/bin:${PATH}"
-    fi
+    log "Rust Burn environment not found in Google Drive. Will populate after cargo fetch..."
 fi
 
 log "Using rustc: $(rustc --version) | cargo: $(cargo --version)"

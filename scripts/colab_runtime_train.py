@@ -48,6 +48,15 @@ def mount_google_drive() -> pathlib.Path:
         print(f"[notebook] Using Google Drive cache directory: {cache_dir}")
         return cache_dir
 
+    if os.path.isdir("/content/drive/MyDrive"):
+        cache_dir = pathlib.Path("/content/drive/MyDrive/burn-mnist-rk3588-cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        print(
+            f"[notebook] Google Drive already mounted at /content/drive/MyDrive. "
+            f"Using cache at: {cache_dir}"
+        )
+        return cache_dir
+
     try:
         from google.colab import drive  # type: ignore
 
@@ -106,28 +115,46 @@ def ensure_rust_burn_env(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -
     if cargo_bin.is_dir():
         env["PATH"] = f"{cargo_bin}:{env.get('PATH', '')}"
 
+    if shutil.which("cargo", path=env.get("PATH")) is None:
+        print("[notebook] Installing Rust toolchain via rustup...")
+        subprocess.run(
+            "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable",
+            shell=True,
+            check=True,
+            env=env,
+        )
+        env["PATH"] = f"{cargo_bin}:{env.get('PATH', '')}"
+
     drive_env_tar = drive_cache / "rust-burn-cargo-cache.tar.gz"
     runtime_cargo_home = runtime_dir / "cargo-home"
+    runtime_cargo_home.mkdir(parents=True, exist_ok=True)
+    env["CARGO_HOME"] = str(runtime_cargo_home)
+    env.setdefault("CARGO_TARGET_DIR", "/tmp/burn-mnist-cargo-target")
 
     if drive_env_tar.is_file() and drive_env_tar.stat().st_size > 0:
         print(f"[notebook] Found Rust Burn environment in Google Drive ({drive_env_tar}). Migrating to runtime...")
-        runtime_cargo_home.mkdir(parents=True, exist_ok=True)
         with tarfile.open(drive_env_tar, "r:gz") as tar:
             tar.extractall(runtime_cargo_home)
-        env["CARGO_HOME"] = str(runtime_cargo_home)
     else:
-        print("[notebook] Rust Burn cache not yet in Google Drive. Checking Rust toolchain...")
-        if shutil.which("cargo", path=env.get("PATH")) is None:
-            print("[notebook] Installing Rust toolchain via rustup...")
-            subprocess.run(
-                "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable",
-                shell=True,
-                check=True,
-                env=env,
-            )
-            env["PATH"] = f"{cargo_bin}:{env.get('PATH', '')}"
+        print("[notebook] Rust Burn cache not yet in Google Drive. Will populate after cargo fetch...")
 
     return env
+
+
+def detect_default_backend(env: dict[str, str]) -> str:
+    """Resolve training backend: respect BACKEND env var, else use gpu if GPU hardware exists, else cpu."""
+    if env.get("BACKEND"):
+        return env["BACKEND"]
+    has_nvidia = (
+        shutil.which("nvidia-smi", path=env.get("PATH")) is not None
+        and subprocess.run(
+            ["nvidia-smi"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        ).returncode
+        == 0
+    )
+    if has_nvidia or os.path.isdir("/dev/dri"):
+        return "gpu"
+    return "cpu"
 
 
 # %%
@@ -160,7 +187,7 @@ def clone_and_train(
                 tar.add(registry_dir, arcname="registry")
             print(f"[notebook] Archived Rust Burn environment to Google Drive: {drive_env_tar}")
 
-    backend = env.get("BACKEND", "gpu")
+    backend = detect_default_backend(env)
     epochs = env.get("EPOCHS", "5")
     batch_size = env.get("BATCH_SIZE", "128")
     lr = env.get("LR", "0.001")
