@@ -159,7 +159,7 @@ def ensure_rust_burn_env(drive_cache: pathlib.Path, runtime_dir: pathlib.Path) -
     if drive_env_tar.is_file() and drive_env_tar.stat().st_size > 0:
         print(f"[notebook] Found Rust Burn environment in Google Drive ({drive_env_tar}). Migrating to runtime...")
         with tarfile.open(drive_env_tar, "r:gz") as tar:
-            tar.extractall(runtime_cargo_home)
+            tar.extractall(runtime_cargo_home, filter="data")
     else:
         print("[notebook] Rust Burn cache not yet in Google Drive. Will populate after cargo fetch...")
 
@@ -278,4 +278,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _rc = main()
+    if _rc != 0:
+        sys.exit(_rc)
