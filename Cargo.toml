@@ -4,13 +4,14 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT OR Apache-2.0"
-description = "Rust Burn MNIST handwritten digit recognition training and RK3588 CPU/GPU inference benchmark framework"
+description = "Rust Burn MNIST handwritten digit recognition training and RK3588 CPU/GPU/NPU inference benchmark framework"
 repository = "https://github.com/AnlangA/burn-mnist-rk3588"
 
 [features]
-default = ["cpu", "gpu"]
+default = ["cpu", "gpu", "npu"]
 cpu = ["burn/flex", "burn/simd", "burn/rayon"]
 gpu = ["burn/wgpu"]
+npu = []
 
 [[bin]]
 name = "train"
@@ -29,6 +30,11 @@ required-features = ["cpu"]
 name = "mnist-gpu"
 path = "src/bin/mnist-gpu.rs"
 required-features = ["gpu"]
+
+[[bin]]
+name = "mnist-npu"
+path = "src/bin/mnist-npu.rs"
+required-features = ["npu"]
 
 [dependencies]
 burn = { version = "0.22.1", default-features = false, features = ["std", "optim", "store", "safetensors"] }

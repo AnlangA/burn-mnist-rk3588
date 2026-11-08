@@ -6,7 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "Usage: bench [--model PATH] [--backend cpu|gpu|vulkan|gl|all] [--data-dir DIR]\n\
+            "Usage: bench [--model PATH] [--backend cpu|gpu|vulkan|gl|npu|npu-int8|npu-all|all] [--data-dir DIR]\n\
              [--images-dir DIR] [--image PNG_PATH] [--iterations N] [--output-json PATH]"
         );
         return Ok(());
@@ -27,6 +27,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(img_path) = single_image {
         let kind = if backend_arg == "all" {
             BackendKind::Cpu
+        } else if backend_arg == "npu-all" {
+            BackendKind::Npu
         } else {
             BackendKind::parse(&backend_arg)?
         };
@@ -44,9 +46,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let backends: Vec<BackendKind> = if backend_arg == "all" {
-        vec![BackendKind::Cpu, BackendKind::GpuVulkan, BackendKind::GpuGl]
+        vec![
+            BackendKind::Cpu,
+            BackendKind::Npu,
+            BackendKind::NpuInt8,
+            BackendKind::GpuVulkan,
+            BackendKind::GpuGl,
+        ]
     } else if backend_arg == "gpu-all" {
         vec![BackendKind::GpuVulkan, BackendKind::GpuGl]
+    } else if backend_arg == "npu-all" {
+        vec![BackendKind::Npu, BackendKind::NpuInt8]
     } else {
         vec![BackendKind::parse(&backend_arg)?]
     };
@@ -63,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(rep) => reports.push(rep),
             Err(err) => {
                 eprintln!("Backend {} failed: {err}", kind.as_str());
-                if backend_arg != "all" && backend_arg != "gpu-all" {
+                if backend_arg != "all" && backend_arg != "gpu-all" && backend_arg != "npu-all" {
                     return Err(err.into());
                 }
             }

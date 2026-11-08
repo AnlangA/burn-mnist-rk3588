@@ -2,12 +2,12 @@
   {
     "backend_requested": "cpu",
     "backend_resolved": "Burn Flex CPU (SIMD + Rayon)",
-    "model_load_ms": 0.32317799999999997,
-    "single_sample_warmup_ms": 18.393402,
+    "model_load_ms": 0.748471,
+    "single_sample_warmup_ms": 7.79881,
     "test_set_samples": 10000,
     "test_set_accuracy": 0.9866,
-    "test_set_warmup_ms": 52.909379,
-    "test_set_eval_ms": 1760.9117469999999,
+    "test_set_warmup_ms": 58.625292,
+    "test_set_eval_ms": 1651.917434,
     "png_samples_total": 20,
     "png_samples_correct": 19,
     "png_samples_accuracy": 0.95,
@@ -16,53 +16,61 @@
         "batch_size": 1,
         "iterations": 100,
         "warmup_iterations": 20,
-        "mean_batch_ms": 1.0302940800000002,
-        "p50_batch_ms": 1.038951,
-        "p95_batch_ms": 1.28921,
-        "p99_batch_ms": 1.374379,
-        "per_sample_ms": 1.0302940800000002,
-        "throughput_samples_per_sec": 970.5966669244569,
+        "mean_batch_ms": 0.9897366599999999,
+        "p50_batch_ms": 0.9765699999999999,
+        "p95_batch_ms": 1.212545,
+        "p99_batch_ms": 1.383766,
+        "per_sample_ms": 0.9897366599999999,
+        "throughput_samples_per_sec": 1010.3697684594204,
         "panthor_gpu_total_ms": 0.0,
-        "panthor_gpu_per_batch_ms": 0.0
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 16,
         "iterations": 50,
         "warmup_iterations": 10,
-        "mean_batch_ms": 3.83605714,
-        "p50_batch_ms": 3.8002510000000003,
-        "p95_batch_ms": 4.453606,
-        "p99_batch_ms": 4.877995,
-        "per_sample_ms": 0.23975357125,
-        "throughput_samples_per_sec": 4170.949340968367,
+        "mean_batch_ms": 3.808846320000001,
+        "p50_batch_ms": 3.791938,
+        "p95_batch_ms": 4.600205,
+        "p99_batch_ms": 5.129492,
+        "per_sample_ms": 0.23805289500000007,
+        "throughput_samples_per_sec": 4200.747065058796,
         "panthor_gpu_total_ms": 0.0,
-        "panthor_gpu_per_batch_ms": 0.0
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 64,
         "iterations": 50,
         "warmup_iterations": 10,
-        "mean_batch_ms": 15.98015708,
-        "p50_batch_ms": 15.648935,
-        "p95_batch_ms": 19.431894000000003,
-        "p99_batch_ms": 20.410926,
-        "per_sample_ms": 0.249689954375,
-        "throughput_samples_per_sec": 4004.966889849871,
+        "mean_batch_ms": 13.924225520000002,
+        "p50_batch_ms": 14.213351000000001,
+        "p95_batch_ms": 16.368339,
+        "p99_batch_ms": 17.675975,
+        "per_sample_ms": 0.21756602375000003,
+        "throughput_samples_per_sec": 4596.305906427174,
         "panthor_gpu_total_ms": 0.0,
-        "panthor_gpu_per_batch_ms": 0.0
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 256,
         "iterations": 25,
         "warmup_iterations": 5,
-        "mean_batch_ms": 46.84697403999999,
-        "p50_batch_ms": 47.351444,
-        "p95_batch_ms": 51.691254,
-        "p99_batch_ms": 57.663494,
-        "per_sample_ms": 0.18299599234374997,
-        "throughput_samples_per_sec": 5464.600547762509,
+        "mean_batch_ms": 42.67673304,
+        "p50_batch_ms": 44.377340000000004,
+        "p95_batch_ms": 47.870884000000004,
+        "p99_batch_ms": 49.331656,
+        "per_sample_ms": 0.1667059884375,
+        "throughput_samples_per_sec": 5998.5847501507815,
         "panthor_gpu_total_ms": 0.0,
-        "panthor_gpu_per_batch_ms": 0.0
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       }
     ],
     "png_predictions": [
@@ -72,7 +80,7 @@
         "predicted_digit": 0,
         "confidence": 0.9999638,
         "correct": true,
-        "latency_ms": 1.1352039999999999
+        "latency_ms": 1.195044
       },
       {
         "file_name": "d0_0010.png",
@@ -80,7 +88,7 @@
         "predicted_digit": 0,
         "confidence": 0.9999881,
         "correct": true,
-        "latency_ms": 1.134913
+        "latency_ms": 1.048034
       },
       {
         "file_name": "d1_0002.png",
@@ -88,7 +96,7 @@
         "predicted_digit": 1,
         "confidence": 0.9996221,
         "correct": true,
-        "latency_ms": 0.96749
+        "latency_ms": 1.1676250000000001
       },
       {
         "file_name": "d1_0005.png",
@@ -96,7 +104,7 @@
         "predicted_digit": 1,
         "confidence": 0.99986666,
         "correct": true,
-        "latency_ms": 0.939782
+        "latency_ms": 1.136873
       },
       {
         "file_name": "d2_0001.png",
@@ -104,7 +112,7 @@
         "predicted_digit": 2,
         "confidence": 0.999978,
         "correct": true,
-        "latency_ms": 0.9671989999999999
+        "latency_ms": 0.822851
       },
       {
         "file_name": "d2_0035.png",
@@ -112,7 +120,7 @@
         "predicted_digit": 2,
         "confidence": 0.99999374,
         "correct": true,
-        "latency_ms": 0.6460629999999999
+        "latency_ms": 1.110746
       },
       {
         "file_name": "d3_0018.png",
@@ -120,7 +128,7 @@
         "predicted_digit": 8,
         "confidence": 0.94388646,
         "correct": false,
-        "latency_ms": 1.1384130000000001
+        "latency_ms": 1.027323
       },
       {
         "file_name": "d3_0030.png",
@@ -128,7 +136,7 @@
         "predicted_digit": 3,
         "confidence": 0.9999999,
         "correct": true,
-        "latency_ms": 0.950865
+        "latency_ms": 0.9415680000000001
       },
       {
         "file_name": "d4_0004.png",
@@ -136,7 +144,7 @@
         "predicted_digit": 4,
         "confidence": 0.9999733,
         "correct": true,
-        "latency_ms": 1.0299090000000002
+        "latency_ms": 0.916191
       },
       {
         "file_name": "d4_0006.png",
@@ -144,7 +152,7 @@
         "predicted_digit": 4,
         "confidence": 0.9934369,
         "correct": true,
-        "latency_ms": 1.101078
+        "latency_ms": 1.087411
       },
       {
         "file_name": "d5_0008.png",
@@ -152,7 +160,7 @@
         "predicted_digit": 5,
         "confidence": 0.8467235,
         "correct": true,
-        "latency_ms": 1.1979149999999998
+        "latency_ms": 0.910648
       },
       {
         "file_name": "d5_0015.png",
@@ -160,7 +168,7 @@
         "predicted_digit": 5,
         "confidence": 0.9992177,
         "correct": true,
-        "latency_ms": 1.168164
+        "latency_ms": 1.129706
       },
       {
         "file_name": "d6_0011.png",
@@ -168,7 +176,7 @@
         "predicted_digit": 6,
         "confidence": 0.99998546,
         "correct": true,
-        "latency_ms": 1.120037
+        "latency_ms": 1.285176
       },
       {
         "file_name": "d6_0021.png",
@@ -176,7 +184,7 @@
         "predicted_digit": 6,
         "confidence": 0.9999641,
         "correct": true,
-        "latency_ms": 0.640813
+        "latency_ms": 1.1396240000000002
       },
       {
         "file_name": "d7_0000.png",
@@ -184,7 +192,7 @@
         "predicted_digit": 7,
         "confidence": 0.99999905,
         "correct": true,
-        "latency_ms": 0.977407
+        "latency_ms": 1.162375
       },
       {
         "file_name": "d7_0017.png",
@@ -192,7 +200,7 @@
         "predicted_digit": 7,
         "confidence": 0.99999285,
         "correct": true,
-        "latency_ms": 1.008325
+        "latency_ms": 1.1011199999999999
       },
       {
         "file_name": "d8_0061.png",
@@ -200,7 +208,7 @@
         "predicted_digit": 8,
         "confidence": 0.9999999,
         "correct": true,
-        "latency_ms": 0.970991
+        "latency_ms": 1.216921
       },
       {
         "file_name": "d8_0084.png",
@@ -208,7 +216,7 @@
         "predicted_digit": 8,
         "confidence": 0.999995,
         "correct": true,
-        "latency_ms": 1.180997
+        "latency_ms": 1.198253
       },
       {
         "file_name": "d9_0007.png",
@@ -216,7 +224,7 @@
         "predicted_digit": 9,
         "confidence": 0.99951744,
         "correct": true,
-        "latency_ms": 1.3145850000000001
+        "latency_ms": 1.157125
       },
       {
         "file_name": "d9_0009.png",
@@ -224,19 +232,493 @@
         "predicted_digit": 9,
         "confidence": 0.99939865,
         "correct": true,
-        "latency_ms": 1.199373
+        "latency_ms": 1.052701
+      }
+    ]
+  },
+  {
+    "backend_requested": "npu",
+    "backend_resolved": "RK3588 NPU 3-Core (FP16, librknnrt 1.5.2, drv 0.9.6, 800 MHz)",
+    "model_load_ms": 10.70289,
+    "single_sample_warmup_ms": 0.409238,
+    "test_set_samples": 10000,
+    "test_set_accuracy": 0.9865,
+    "test_set_warmup_ms": 36.666872000000005,
+    "test_set_eval_ms": 388.40551800000003,
+    "png_samples_total": 20,
+    "png_samples_correct": 19,
+    "png_samples_accuracy": 0.95,
+    "batch_benchmarks": [
+      {
+        "batch_size": 1,
+        "iterations": 100,
+        "warmup_iterations": 20,
+        "mean_batch_ms": 0.18317981000000017,
+        "p50_batch_ms": 0.18317999999999998,
+        "p95_batch_ms": 0.184638,
+        "p99_batch_ms": 0.188722,
+        "per_sample_ms": 0.18317981000000017,
+        "throughput_samples_per_sec": 5459.116919053465,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 11.287432,
+        "rknpu_hw_per_batch_ms": 0.11287432000000001
+      },
+      {
+        "batch_size": 16,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 1.17539572,
+        "p50_batch_ms": 1.1416650000000002,
+        "p95_batch_ms": 1.354014,
+        "p99_batch_ms": 1.417602,
+        "per_sample_ms": 0.0734622325,
+        "throughput_samples_per_sec": 13612.43683956923,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 77.999276,
+        "rknpu_hw_per_batch_ms": 1.55998552
+      },
+      {
+        "batch_size": 64,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 2.9278599199999995,
+        "p50_batch_ms": 2.93846,
+        "p95_batch_ms": 2.996797,
+        "p99_batch_ms": 2.999714,
+        "per_sample_ms": 0.04574781124999999,
+        "throughput_samples_per_sec": 21858.969263802763,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 250.46215,
+        "rknpu_hw_per_batch_ms": 5.009243000000001
+      },
+      {
+        "batch_size": 256,
+        "iterations": 25,
+        "warmup_iterations": 5,
+        "mean_batch_ms": 9.915368280000001,
+        "p50_batch_ms": 9.931084,
+        "p95_batch_ms": 9.959378,
+        "p99_batch_ms": 10.003131,
+        "per_sample_ms": 0.038731907343750004,
+        "throughput_samples_per_sec": 25818.50646096223,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 463.579243,
+        "rknpu_hw_per_batch_ms": 18.54316972
+      }
+    ],
+    "png_predictions": [
+      {
+        "file_name": "d0_0003.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.999964,
+        "correct": true,
+        "latency_ms": 0.300439
+      },
+      {
+        "file_name": "d0_0010.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.9999881,
+        "correct": true,
+        "latency_ms": 0.278853
+      },
+      {
+        "file_name": "d1_0002.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99962246,
+        "correct": true,
+        "latency_ms": 0.27827
+      },
+      {
+        "file_name": "d1_0005.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99986696,
+        "correct": true,
+        "latency_ms": 0.216724
+      },
+      {
+        "file_name": "d2_0001.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99997795,
+        "correct": true,
+        "latency_ms": 0.201848
+      },
+      {
+        "file_name": "d2_0035.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.9999937,
+        "correct": true,
+        "latency_ms": 0.268061
+      },
+      {
+        "file_name": "d3_0018.png",
+        "expected_digit": 3,
+        "predicted_digit": 8,
+        "confidence": 0.9440395,
+        "correct": false,
+        "latency_ms": 0.216724
+      },
+      {
+        "file_name": "d3_0030.png",
+        "expected_digit": 3,
+        "predicted_digit": 3,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.200097
+      },
+      {
+        "file_name": "d4_0004.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9999734,
+        "correct": true,
+        "latency_ms": 0.201848
+      },
+      {
+        "file_name": "d4_0006.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9934782,
+        "correct": true,
+        "latency_ms": 0.19543
+      },
+      {
+        "file_name": "d5_0008.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.84700644,
+        "correct": true,
+        "latency_ms": 0.192805
+      },
+      {
+        "file_name": "d5_0015.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.99921525,
+        "correct": true,
+        "latency_ms": 0.192514
+      },
+      {
+        "file_name": "d6_0011.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.99998546,
+        "correct": true,
+        "latency_ms": 0.198347
+      },
+      {
+        "file_name": "d6_0021.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999646,
+        "correct": true,
+        "latency_ms": 0.194555
+      },
+      {
+        "file_name": "d7_0000.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999905,
+        "correct": true,
+        "latency_ms": 0.194555
+      },
+      {
+        "file_name": "d7_0017.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999285,
+        "correct": true,
+        "latency_ms": 0.19309700000000002
+      },
+      {
+        "file_name": "d8_0061.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.19309700000000002
+      },
+      {
+        "file_name": "d8_0084.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999949,
+        "correct": true,
+        "latency_ms": 0.192514
+      },
+      {
+        "file_name": "d9_0007.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.9995167,
+        "correct": true,
+        "latency_ms": 0.193681
+      },
+      {
+        "file_name": "d9_0009.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.99939716,
+        "correct": true,
+        "latency_ms": 0.19251300000000002
+      }
+    ]
+  },
+  {
+    "backend_requested": "npu-int8",
+    "backend_resolved": "RK3588 NPU 3-Core (INT8, librknnrt 1.5.2, drv 0.9.6, 800 MHz)",
+    "model_load_ms": 2.7447790000000003,
+    "single_sample_warmup_ms": 0.280896,
+    "test_set_samples": 10000,
+    "test_set_accuracy": 0.9864,
+    "test_set_warmup_ms": 29.746374999999997,
+    "test_set_eval_ms": 280.11700499999995,
+    "png_samples_total": 20,
+    "png_samples_correct": 19,
+    "png_samples_accuracy": 0.95,
+    "batch_benchmarks": [
+      {
+        "batch_size": 1,
+        "iterations": 100,
+        "warmup_iterations": 20,
+        "mean_batch_ms": 0.16620056000000005,
+        "p50_batch_ms": 0.16247,
+        "p95_batch_ms": 0.182888,
+        "p99_batch_ms": 0.25551799999999997,
+        "per_sample_ms": 0.16620056000000005,
+        "throughput_samples_per_sec": 6016.826898778198,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 8.895886,
+        "rknpu_hw_per_batch_ms": 0.08895886000000001
+      },
+      {
+        "batch_size": 16,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 0.8048416199999999,
+        "p50_batch_ms": 0.790473,
+        "p95_batch_ms": 1.0106970000000002,
+        "p99_batch_ms": 1.0220719999999999,
+        "per_sample_ms": 0.050302601249999995,
+        "throughput_samples_per_sec": 19879.687633450172,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 50.534859,
+        "rknpu_hw_per_batch_ms": 1.01069718
+      },
+      {
+        "batch_size": 64,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 2.77138118,
+        "p50_batch_ms": 2.7692810000000003,
+        "p95_batch_ms": 2.918917,
+        "p99_batch_ms": 2.940793,
+        "per_sample_ms": 0.0433028309375,
+        "throughput_samples_per_sec": 23093.178398505253,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 149.044424,
+        "rknpu_hw_per_batch_ms": 2.98088848
+      },
+      {
+        "batch_size": 256,
+        "iterations": 25,
+        "warmup_iterations": 5,
+        "mean_batch_ms": 7.138911,
+        "p50_batch_ms": 7.149843000000001,
+        "p95_batch_ms": 7.1968049999999995,
+        "p99_batch_ms": 7.215181,
+        "per_sample_ms": 0.02788637109375,
+        "throughput_samples_per_sec": 35859.81111124652,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 272.411312,
+        "rknpu_hw_per_batch_ms": 10.89645248
+      }
+    ],
+    "png_predictions": [
+      {
+        "file_name": "d0_0003.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.9999664,
+        "correct": true,
+        "latency_ms": 0.280604
+      },
+      {
+        "file_name": "d0_0010.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.99998915,
+        "correct": true,
+        "latency_ms": 0.19426400000000002
+      },
+      {
+        "file_name": "d1_0002.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99961394,
+        "correct": true,
+        "latency_ms": 0.18113800000000002
+      },
+      {
+        "file_name": "d1_0005.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.9998678,
+        "correct": true,
+        "latency_ms": 0.245893
+      },
+      {
+        "file_name": "d2_0001.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99997973,
+        "correct": true,
+        "latency_ms": 0.258143
+      },
+      {
+        "file_name": "d2_0035.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99999404,
+        "correct": true,
+        "latency_ms": 0.19513899999999998
+      },
+      {
+        "file_name": "d3_0018.png",
+        "expected_digit": 3,
+        "predicted_digit": 8,
+        "confidence": 0.9410262,
+        "correct": false,
+        "latency_ms": 0.184055
+      },
+      {
+        "file_name": "d3_0030.png",
+        "expected_digit": 3,
+        "predicted_digit": 3,
+        "confidence": 0.9999994,
+        "correct": true,
+        "latency_ms": 0.177346
+      },
+      {
+        "file_name": "d4_0004.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9999765,
+        "correct": true,
+        "latency_ms": 0.17618
+      },
+      {
+        "file_name": "d4_0006.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9930982,
+        "correct": true,
+        "latency_ms": 0.172387
+      },
+      {
+        "file_name": "d5_0008.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.8466728,
+        "correct": true,
+        "latency_ms": 0.17005399999999998
+      },
+      {
+        "file_name": "d5_0015.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.9992126,
+        "correct": true,
+        "latency_ms": 0.179096
+      },
+      {
+        "file_name": "d6_0011.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999865,
+        "correct": true,
+        "latency_ms": 0.17763800000000002
+      },
+      {
+        "file_name": "d6_0021.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999652,
+        "correct": true,
+        "latency_ms": 0.17647100000000002
+      },
+      {
+        "file_name": "d7_0000.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999905,
+        "correct": true,
+        "latency_ms": 0.172971
+      },
+      {
+        "file_name": "d7_0017.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.9999926,
+        "correct": true,
+        "latency_ms": 0.178221
+      },
+      {
+        "file_name": "d8_0061.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.17647100000000002
+      },
+      {
+        "file_name": "d8_0084.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999949,
+        "correct": true,
+        "latency_ms": 0.17238799999999999
+      },
+      {
+        "file_name": "d9_0007.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.9994917,
+        "correct": true,
+        "latency_ms": 0.170928
+      },
+      {
+        "file_name": "d9_0009.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.99935323,
+        "correct": true,
+        "latency_ms": 0.17588700000000002
       }
     ]
   },
   {
     "backend_requested": "vulkan",
     "backend_resolved": "Burn WGPU (Vulkan)",
-    "model_load_ms": 0.158964,
-    "single_sample_warmup_ms": 115.527619,
+    "model_load_ms": 0.175596,
+    "single_sample_warmup_ms": 120.805829,
     "test_set_samples": 10000,
     "test_set_accuracy": 0.9866,
-    "test_set_warmup_ms": 489.639392,
-    "test_set_eval_ms": 3358.20617,
+    "test_set_warmup_ms": 498.02605700000004,
+    "test_set_eval_ms": 3336.908978,
     "png_samples_total": 20,
     "png_samples_correct": 19,
     "png_samples_accuracy": 0.95,
@@ -245,53 +727,61 @@
         "batch_size": 1,
         "iterations": 100,
         "warmup_iterations": 20,
-        "mean_batch_ms": 3.1414186799999992,
-        "p50_batch_ms": 3.035101,
-        "p95_batch_ms": 3.211731,
-        "p99_batch_ms": 6.066033999999999,
-        "per_sample_ms": 3.1414186799999992,
-        "throughput_samples_per_sec": 318.3275143700362,
-        "panthor_gpu_total_ms": 446.980042,
-        "panthor_gpu_per_batch_ms": 4.46980042
+        "mean_batch_ms": 3.233342149999998,
+        "p50_batch_ms": 3.0616760000000003,
+        "p95_batch_ms": 3.5890050000000002,
+        "p99_batch_ms": 3.662635,
+        "per_sample_ms": 3.233342149999998,
+        "throughput_samples_per_sec": 309.27750717628214,
+        "panthor_gpu_total_ms": 439.763042,
+        "panthor_gpu_per_batch_ms": 4.39763042,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 16,
         "iterations": 50,
         "warmup_iterations": 10,
-        "mean_batch_ms": 23.463417019999994,
-        "p50_batch_ms": 23.388524,
-        "p95_batch_ms": 24.00367,
-        "p99_batch_ms": 24.200635000000002,
-        "per_sample_ms": 1.4664635637499996,
-        "throughput_samples_per_sec": 681.9126125730857,
-        "panthor_gpu_total_ms": 3225.611084,
-        "panthor_gpu_per_batch_ms": 64.51222168
+        "mean_batch_ms": 23.421267899999993,
+        "p50_batch_ms": 23.444162000000002,
+        "p95_batch_ms": 23.691056,
+        "p99_batch_ms": 23.816983,
+        "per_sample_ms": 1.4638292437499996,
+        "throughput_samples_per_sec": 683.139788516744,
+        "panthor_gpu_total_ms": 3218.032125,
+        "panthor_gpu_per_batch_ms": 64.3606425,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 64,
         "iterations": 50,
         "warmup_iterations": 10,
-        "mean_batch_ms": 33.15425458,
-        "p50_batch_ms": 33.125764000000004,
-        "p95_batch_ms": 33.802703,
-        "p99_batch_ms": 34.030169,
-        "per_sample_ms": 0.5180352278125,
-        "throughput_samples_per_sec": 1930.3706510900538,
-        "panthor_gpu_total_ms": 4669.71925,
-        "panthor_gpu_per_batch_ms": 93.394385
+        "mean_batch_ms": 33.110368720000004,
+        "p50_batch_ms": 33.122263,
+        "p95_batch_ms": 33.424369000000006,
+        "p99_batch_ms": 33.77981,
+        "per_sample_ms": 0.5173495112500001,
+        "throughput_samples_per_sec": 1932.9292446490156,
+        "panthor_gpu_total_ms": 4658.210084,
+        "panthor_gpu_per_batch_ms": 93.16420168,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 256,
         "iterations": 25,
         "warmup_iterations": 5,
-        "mean_batch_ms": 83.66833000000001,
-        "p50_batch_ms": 83.62897699999999,
-        "p95_batch_ms": 84.24874799999999,
-        "p99_batch_ms": 84.254915,
-        "per_sample_ms": 0.32682941406250005,
-        "throughput_samples_per_sec": 3059.7001278739513,
-        "panthor_gpu_total_ms": 6109.724541,
-        "panthor_gpu_per_batch_ms": 244.38898164
+        "mean_batch_ms": 83.27647063999999,
+        "p50_batch_ms": 83.332928,
+        "p95_batch_ms": 83.592405,
+        "p99_batch_ms": 83.722164,
+        "per_sample_ms": 0.32529871343749994,
+        "throughput_samples_per_sec": 3074.0976176413046,
+        "panthor_gpu_total_ms": 6081.495292,
+        "panthor_gpu_per_batch_ms": 243.25981167999998,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       }
     ],
     "png_predictions": [
@@ -301,7 +791,7 @@
         "predicted_digit": 0,
         "confidence": 0.9999638,
         "correct": true,
-        "latency_ms": 3.514908
+        "latency_ms": 3.425077
       },
       {
         "file_name": "d0_0010.png",
@@ -309,7 +799,7 @@
         "predicted_digit": 0,
         "confidence": 0.9999881,
         "correct": true,
-        "latency_ms": 3.28265
+        "latency_ms": 3.297235
       },
       {
         "file_name": "d1_0002.png",
@@ -317,7 +807,7 @@
         "predicted_digit": 1,
         "confidence": 0.9996221,
         "correct": true,
-        "latency_ms": 3.027517
+        "latency_ms": 3.3475710000000003
       },
       {
         "file_name": "d1_0005.png",
@@ -325,7 +815,7 @@
         "predicted_digit": 1,
         "confidence": 0.9998667,
         "correct": true,
-        "latency_ms": 3.127562
+        "latency_ms": 3.674428
       },
       {
         "file_name": "d2_0001.png",
@@ -333,7 +823,7 @@
         "predicted_digit": 2,
         "confidence": 0.999978,
         "correct": true,
-        "latency_ms": 3.2460649999999998
+        "latency_ms": 3.320194
       },
       {
         "file_name": "d2_0035.png",
@@ -341,7 +831,7 @@
         "predicted_digit": 2,
         "confidence": 0.99999374,
         "correct": true,
-        "latency_ms": 3.286025
+        "latency_ms": 3.218603
       },
       {
         "file_name": "d3_0018.png",
@@ -349,7 +839,7 @@
         "predicted_digit": 8,
         "confidence": 0.9438864,
         "correct": false,
-        "latency_ms": 3.174647
+        "latency_ms": 3.2438559999999996
       },
       {
         "file_name": "d3_0030.png",
@@ -357,7 +847,7 @@
         "predicted_digit": 3,
         "confidence": 0.9999999,
         "correct": true,
-        "latency_ms": 3.120104
+        "latency_ms": 3.199769
       },
       {
         "file_name": "d4_0004.png",
@@ -365,7 +855,7 @@
         "predicted_digit": 4,
         "confidence": 0.9999733,
         "correct": true,
-        "latency_ms": 3.087727
+        "latency_ms": 3.139931
       },
       {
         "file_name": "d4_0006.png",
@@ -373,7 +863,7 @@
         "predicted_digit": 4,
         "confidence": 0.9934369,
         "correct": true,
-        "latency_ms": 3.694372
+        "latency_ms": 3.1761
       },
       {
         "file_name": "d5_0008.png",
@@ -381,7 +871,7 @@
         "predicted_digit": 5,
         "confidence": 0.8467235,
         "correct": true,
-        "latency_ms": 3.166188
+        "latency_ms": 3.20252
       },
       {
         "file_name": "d5_0015.png",
@@ -389,7 +879,7 @@
         "predicted_digit": 5,
         "confidence": 0.9992177,
         "correct": true,
-        "latency_ms": 3.0063910000000003
+        "latency_ms": 3.198352
       },
       {
         "file_name": "d6_0011.png",
@@ -397,7 +887,7 @@
         "predicted_digit": 6,
         "confidence": 0.99998546,
         "correct": true,
-        "latency_ms": 3.5578670000000003
+        "latency_ms": 3.0998449999999997
       },
       {
         "file_name": "d6_0021.png",
@@ -405,7 +895,7 @@
         "predicted_digit": 6,
         "confidence": 0.9999641,
         "correct": true,
-        "latency_ms": 3.324819
+        "latency_ms": 3.63655
       },
       {
         "file_name": "d7_0000.png",
@@ -413,7 +903,7 @@
         "predicted_digit": 7,
         "confidence": 0.99999905,
         "correct": true,
-        "latency_ms": 2.973265
+        "latency_ms": 3.27665
       },
       {
         "file_name": "d7_0017.png",
@@ -421,7 +911,7 @@
         "predicted_digit": 7,
         "confidence": 0.99999285,
         "correct": true,
-        "latency_ms": 3.034767
+        "latency_ms": 3.223479
       },
       {
         "file_name": "d8_0061.png",
@@ -429,7 +919,7 @@
         "predicted_digit": 8,
         "confidence": 0.9999999,
         "correct": true,
-        "latency_ms": 3.0483089999999997
+        "latency_ms": 3.232397
       },
       {
         "file_name": "d8_0084.png",
@@ -437,7 +927,7 @@
         "predicted_digit": 8,
         "confidence": 0.999995,
         "correct": true,
-        "latency_ms": 3.050768
+        "latency_ms": 3.176059
       },
       {
         "file_name": "d9_0007.png",
@@ -445,7 +935,7 @@
         "predicted_digit": 9,
         "confidence": 0.99951744,
         "correct": true,
-        "latency_ms": 3.047351
+        "latency_ms": 3.147807
       },
       {
         "file_name": "d9_0009.png",
@@ -453,19 +943,19 @@
         "predicted_digit": 9,
         "confidence": 0.99939865,
         "correct": true,
-        "latency_ms": 3.0540599999999998
+        "latency_ms": 3.195227
       }
     ]
   },
   {
     "backend_requested": "gl",
     "backend_resolved": "Burn WGPU (OpenGL ES)",
-    "model_load_ms": 0.204757,
-    "single_sample_warmup_ms": 144.02447500000002,
+    "model_load_ms": 0.22460000000000002,
+    "single_sample_warmup_ms": 145.317547,
     "test_set_samples": 10000,
     "test_set_accuracy": 0.9866,
-    "test_set_warmup_ms": 540.291676,
-    "test_set_eval_ms": 3519.927195,
+    "test_set_warmup_ms": 529.072172,
+    "test_set_eval_ms": 3524.720049,
     "png_samples_total": 20,
     "png_samples_correct": 19,
     "png_samples_accuracy": 0.95,
@@ -474,53 +964,61 @@
         "batch_size": 1,
         "iterations": 100,
         "warmup_iterations": 20,
-        "mean_batch_ms": 5.816186650000002,
-        "p50_batch_ms": 5.801692,
-        "p95_batch_ms": 6.064034,
-        "p99_batch_ms": 6.202039,
-        "per_sample_ms": 5.816186650000002,
-        "throughput_samples_per_sec": 171.933959512802,
-        "panthor_gpu_total_ms": 180.294625,
-        "panthor_gpu_per_batch_ms": 1.80294625
+        "mean_batch_ms": 5.839871579999999,
+        "p50_batch_ms": 5.799533,
+        "p95_batch_ms": 6.136306,
+        "p99_batch_ms": 6.258023,
+        "per_sample_ms": 5.839871579999999,
+        "throughput_samples_per_sec": 171.23664215917574,
+        "panthor_gpu_total_ms": 178.555416,
+        "panthor_gpu_per_batch_ms": 1.78555416,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 16,
         "iterations": 50,
         "warmup_iterations": 10,
-        "mean_batch_ms": 28.093772819999998,
-        "p50_batch_ms": 28.058554,
-        "p95_batch_ms": 28.714533,
-        "p99_batch_ms": 28.766659999999998,
-        "per_sample_ms": 1.7558608012499999,
-        "throughput_samples_per_sec": 569.5212281566389,
-        "panthor_gpu_total_ms": 1150.205291,
-        "panthor_gpu_per_batch_ms": 23.00410582
+        "mean_batch_ms": 28.38464368,
+        "p50_batch_ms": 28.182395999999997,
+        "p95_batch_ms": 30.452137,
+        "p99_batch_ms": 31.818482000000003,
+        "per_sample_ms": 1.77404023,
+        "throughput_samples_per_sec": 563.6850749433117,
+        "panthor_gpu_total_ms": 1158.327042,
+        "panthor_gpu_per_batch_ms": 23.166540839999996,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 64,
         "iterations": 50,
         "warmup_iterations": 10,
-        "mean_batch_ms": 36.58828852,
-        "p50_batch_ms": 36.581168,
-        "p95_batch_ms": 37.061724999999996,
-        "p99_batch_ms": 37.183604,
-        "per_sample_ms": 0.571692008125,
-        "throughput_samples_per_sec": 1749.1935968804917,
-        "panthor_gpu_total_ms": 1550.539375,
-        "panthor_gpu_per_batch_ms": 31.010787500000003
+        "mean_batch_ms": 36.81275436000001,
+        "p50_batch_ms": 36.485932,
+        "p95_batch_ms": 39.075486,
+        "p99_batch_ms": 40.351699999999994,
+        "per_sample_ms": 0.5751992868750001,
+        "throughput_samples_per_sec": 1738.52788558362,
+        "panthor_gpu_total_ms": 1550.513125,
+        "panthor_gpu_per_batch_ms": 31.0102625,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       },
       {
         "batch_size": 256,
         "iterations": 25,
         "warmup_iterations": 5,
-        "mean_batch_ms": 89.16317003999998,
-        "p50_batch_ms": 89.413957,
-        "p95_batch_ms": 89.992975,
-        "p99_batch_ms": 90.67599799999999,
-        "per_sample_ms": 0.34829363296874993,
-        "throughput_samples_per_sec": 2871.1406277407414,
-        "panthor_gpu_total_ms": 2054.012042,
-        "panthor_gpu_per_batch_ms": 82.16048167999999
+        "mean_batch_ms": 89.78836184,
+        "p50_batch_ms": 89.84848,
+        "p95_batch_ms": 93.346945,
+        "p99_batch_ms": 93.63637,
+        "per_sample_ms": 0.3507357884375,
+        "throughput_samples_per_sec": 2851.1490214754544,
+        "panthor_gpu_total_ms": 2047.423,
+        "panthor_gpu_per_batch_ms": 81.89692,
+        "rknpu_hw_total_ms": 0.0,
+        "rknpu_hw_per_batch_ms": 0.0
       }
     ],
     "png_predictions": [
@@ -530,7 +1028,7 @@
         "predicted_digit": 0,
         "confidence": 0.9999638,
         "correct": true,
-        "latency_ms": 6.7913499999999996
+        "latency_ms": 7.216258
       },
       {
         "file_name": "d0_0010.png",
@@ -538,7 +1036,7 @@
         "predicted_digit": 0,
         "confidence": 0.9999881,
         "correct": true,
-        "latency_ms": 6.368002000000001
+        "latency_ms": 6.405242
       },
       {
         "file_name": "d1_0002.png",
@@ -546,7 +1044,7 @@
         "predicted_digit": 1,
         "confidence": 0.9996221,
         "correct": true,
-        "latency_ms": 6.551092
+        "latency_ms": 6.3980749999999995
       },
       {
         "file_name": "d1_0005.png",
@@ -554,7 +1052,7 @@
         "predicted_digit": 1,
         "confidence": 0.9998667,
         "correct": true,
-        "latency_ms": 6.433587999999999
+        "latency_ms": 6.410909
       },
       {
         "file_name": "d2_0001.png",
@@ -562,7 +1060,7 @@
         "predicted_digit": 2,
         "confidence": 0.999978,
         "correct": true,
-        "latency_ms": 6.518091
+        "latency_ms": 6.257732
       },
       {
         "file_name": "d2_0035.png",
@@ -570,7 +1068,7 @@
         "predicted_digit": 2,
         "confidence": 0.99999374,
         "correct": true,
-        "latency_ms": 6.250665
+        "latency_ms": 6.217979000000001
       },
       {
         "file_name": "d3_0018.png",
@@ -578,7 +1076,7 @@
         "predicted_digit": 8,
         "confidence": 0.9438864,
         "correct": false,
-        "latency_ms": 6.427546
+        "latency_ms": 6.245439
       },
       {
         "file_name": "d3_0030.png",
@@ -586,7 +1084,7 @@
         "predicted_digit": 3,
         "confidence": 0.9999999,
         "correct": true,
-        "latency_ms": 6.223623
+        "latency_ms": 6.193976999999999
       },
       {
         "file_name": "d4_0004.png",
@@ -594,7 +1092,7 @@
         "predicted_digit": 4,
         "confidence": 0.9999733,
         "correct": true,
-        "latency_ms": 6.403587
+        "latency_ms": 6.201061
       },
       {
         "file_name": "d4_0006.png",
@@ -602,7 +1100,7 @@
         "predicted_digit": 4,
         "confidence": 0.9934369,
         "correct": true,
-        "latency_ms": 6.377711000000001
+        "latency_ms": 6.239396999999999
       },
       {
         "file_name": "d5_0008.png",
@@ -610,7 +1108,7 @@
         "predicted_digit": 5,
         "confidence": 0.8467235,
         "correct": true,
-        "latency_ms": 6.229456000000001
+        "latency_ms": 6.454079
       },
       {
         "file_name": "d5_0015.png",
@@ -618,7 +1116,7 @@
         "predicted_digit": 5,
         "confidence": 0.9992177,
         "correct": true,
-        "latency_ms": 6.514424
+        "latency_ms": 6.2601059999999995
       },
       {
         "file_name": "d6_0011.png",
@@ -626,7 +1124,7 @@
         "predicted_digit": 6,
         "confidence": 0.99998546,
         "correct": true,
-        "latency_ms": 6.430088
+        "latency_ms": 6.177184
       },
       {
         "file_name": "d6_0021.png",
@@ -634,7 +1132,7 @@
         "predicted_digit": 6,
         "confidence": 0.9999641,
         "correct": true,
-        "latency_ms": 6.261624
+        "latency_ms": 6.177226
       },
       {
         "file_name": "d7_0000.png",
@@ -642,7 +1140,7 @@
         "predicted_digit": 7,
         "confidence": 0.99999905,
         "correct": true,
-        "latency_ms": 6.561842
+        "latency_ms": 6.285192
       },
       {
         "file_name": "d7_0017.png",
@@ -650,7 +1148,7 @@
         "predicted_digit": 7,
         "confidence": 0.99999285,
         "correct": true,
-        "latency_ms": 6.313667000000001
+        "latency_ms": 6.063801
       },
       {
         "file_name": "d8_0061.png",
@@ -658,7 +1156,7 @@
         "predicted_digit": 8,
         "confidence": 0.9999999,
         "correct": true,
-        "latency_ms": 6.498215
+        "latency_ms": 6.16285
       },
       {
         "file_name": "d8_0084.png",
@@ -666,7 +1164,7 @@
         "predicted_digit": 8,
         "confidence": 0.999995,
         "correct": true,
-        "latency_ms": 6.517215
+        "latency_ms": 6.220354
       },
       {
         "file_name": "d9_0007.png",
@@ -674,7 +1172,7 @@
         "predicted_digit": 9,
         "confidence": 0.99951744,
         "correct": true,
-        "latency_ms": 6.409254
+        "latency_ms": 6.207478
       },
       {
         "file_name": "d9_0009.png",
@@ -682,7 +1180,7 @@
         "predicted_digit": 9,
         "confidence": 0.99939865,
         "correct": true,
-        "latency_ms": 6.482797000000001
+        "latency_ms": 6.203519999999999
       }
     ]
   }

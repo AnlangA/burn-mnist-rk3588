@@ -1,5 +1,6 @@
 use crate::data::{load_png_as_mnist_28x28, load_test_split};
 use crate::model::{BackendKind, MnistCnn, Prediction, read_panthor_gpu_ns, resolve_device};
+use crate::npu::{RknnEngine, read_rknpu_busy_ns};
 use burn::prelude::*;
 use burn::tensor::TensorData;
 use serde::{Deserialize, Serialize};
@@ -19,6 +20,10 @@ pub struct BatchBenchResult {
     pub throughput_samples_per_sec: f64,
     pub panthor_gpu_total_ms: f64,
     pub panthor_gpu_per_batch_ms: f64,
+    #[serde(default)]
+    pub rknpu_hw_total_ms: f64,
+    #[serde(default)]
+    pub rknpu_hw_per_batch_ms: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -68,6 +73,16 @@ pub fn run_single_image_inference(
     model_path: &Path,
     image_path: &Path,
 ) -> Result<(Prediction, f64, String), String> {
+    if kind.is_npu() {
+        let mut engine = RknnEngine::load(model_path, kind.is_int8())?;
+        let backend_desc = engine.description().to_string();
+        let pixels = load_png_as_mnist_28x28(image_path)?;
+        let t0 = Instant::now();
+        let pred = engine.predict_28x28(&pixels)?;
+        let latency_ms = t0.elapsed().as_secs_f64() * 1000.0;
+        return Ok((pred, latency_ms, backend_desc));
+    }
+
     let (device, backend_desc) = resolve_device(kind)?;
     let model = MnistCnn::load_burnpack_file(model_path, &device)?;
     let pixels = load_png_as_mnist_28x28(image_path)?;
@@ -77,6 +92,238 @@ pub fn run_single_image_inference(
     Ok((pred, latency_ms, backend_desc))
 }
 
+fn run_npu_backend_bench(
+    kind: BackendKind,
+    model_path: &Path,
+    data_dir: Option<&Path>,
+    images_dir: Option<&Path>,
+    iterations: usize,
+) -> Result<BackendBenchReport, String> {
+    let iterations = iterations.max(1);
+    let load_start = Instant::now();
+    let mut engine = RknnEngine::load(model_path, kind.is_int8())?;
+    let model_load_ms = load_start.elapsed().as_secs_f64() * 1000.0;
+    let backend_desc = engine.description().to_string();
+
+    println!(
+        "=== Benchmarking backend: {} ({}) ===",
+        kind.as_str(),
+        backend_desc
+    );
+
+    let single_warmup_start = Instant::now();
+    let _ = engine.predict_28x28(&[0.0f32; 784])?;
+    let single_sample_warmup_ms = single_warmup_start.elapsed().as_secs_f64() * 1000.0;
+
+    let mut test_set_samples = 0usize;
+    let mut test_set_accuracy = None;
+    let mut test_set_warmup_ms = None;
+    let mut test_set_eval_ms = None;
+
+    if let Some(dir) = data_dir
+        && dir.is_dir()
+        && let Ok(test_split) = load_test_split(dir, None)
+    {
+        test_set_samples = test_split.len();
+
+        // Pre-pack contiguous float slice for the 10k test set
+        let mut flat_test = Vec::with_capacity(test_split.len() * 784);
+        for sample in &test_split.samples {
+            flat_test.extend_from_slice(&sample.pixels);
+        }
+
+        // Warm up 256-batch and 16-tail NPU 3-core tiers before timing 10k evaluation
+        let warmup_start = Instant::now();
+        if test_split.len() >= 256 {
+            let _ = engine.forward_probabilities_batch(&flat_test[..256 * 784], 256)?;
+        }
+        let tail_len = test_split.len() % 256;
+        if tail_len > 0 {
+            let start = (test_split.len() - tail_len) * 784;
+            let _ = engine.forward_probabilities_batch(&flat_test[start..], tail_len)?;
+        }
+        let warmup_ms = warmup_start.elapsed().as_secs_f64() * 1000.0;
+        test_set_warmup_ms = Some(warmup_ms);
+
+        let eval_start = Instant::now();
+        let mut correct = 0usize;
+        let mut offset = 0usize;
+        while offset < test_split.len() {
+            let chunk_len = (test_split.len() - offset).min(256);
+            let probs_vec = engine.forward_probabilities_batch(
+                &flat_test[offset * 784..(offset + chunk_len) * 784],
+                chunk_len,
+            )?;
+            for row_idx in 0..chunk_len {
+                let row = &probs_vec[row_idx * 10..(row_idx + 1) * 10];
+                let pred = row
+                    .iter()
+                    .enumerate()
+                    .max_by(|a, b| a.1.total_cmp(b.1))
+                    .map(|(d, _)| d)
+                    .unwrap_or(0);
+                if pred == usize::from(test_split.samples[offset + row_idx].label) {
+                    correct += 1;
+                }
+            }
+            offset += chunk_len;
+        }
+        let elapsed_ms = eval_start.elapsed().as_secs_f64() * 1000.0;
+        let acc = (correct as f32) / (test_split.len().max(1) as f32);
+        test_set_accuracy = Some(acc);
+        test_set_eval_ms = Some(elapsed_ms);
+        println!(
+            "  [MNIST 10k test] accuracy={:.2}% ({}/{}) eval={:.2} ms (warmup={:.2} ms)",
+            acc * 100.0,
+            correct,
+            test_split.len(),
+            elapsed_ms,
+            warmup_ms
+        );
+    }
+
+    let mut png_predictions = Vec::new();
+    let mut png_samples_total = 0usize;
+    let mut png_samples_correct = 0usize;
+
+    if let Some(img_dir) = images_dir
+        && img_dir.is_dir()
+    {
+        let mut entries: Vec<PathBuf> = std::fs::read_dir(img_dir)
+            .map_err(|e| format!("failed to read {}: {e}", img_dir.display()))?
+            .filter_map(|e| e.ok().map(|x| x.path()))
+            .filter(|p| {
+                p.extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| e.eq_ignore_ascii_case("png"))
+            })
+            .collect();
+        entries.sort();
+
+        for path in entries {
+            let pixels = load_png_as_mnist_28x28(&path)?;
+            let t0 = Instant::now();
+            let pred = engine.predict_28x28(&pixels)?;
+            let latency_ms = t0.elapsed().as_secs_f64() * 1000.0;
+            let expected = digit_from_filename(&path);
+            let is_correct = expected.map(|e| e == pred.digit);
+            png_samples_total += 1;
+            if is_correct == Some(true) {
+                png_samples_correct += 1;
+            }
+            png_predictions.push(SamplePredictionRecord {
+                file_name: path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("sample.png")
+                    .to_string(),
+                expected_digit: expected,
+                predicted_digit: pred.digit,
+                confidence: pred.confidence,
+                correct: is_correct,
+                latency_ms,
+            });
+        }
+        if png_samples_total > 0 {
+            let mean_png_ms = png_predictions.iter().map(|p| p.latency_ms).sum::<f64>()
+                / (png_samples_total as f64);
+            println!(
+                "  [PNG samples] accuracy={:.2}% ({}/{}) mean_latency={:.3} ms",
+                (png_samples_correct as f64) * 100.0 / (png_samples_total as f64),
+                png_samples_correct,
+                png_samples_total,
+                mean_png_ms
+            );
+        }
+    }
+
+    let png_samples_accuracy = if png_samples_total > 0 {
+        Some((png_samples_correct as f32) / (png_samples_total as f32))
+    } else {
+        None
+    };
+
+    let batch_sizes = [1usize, 16, 64, 256];
+    let mut batch_benchmarks = Vec::with_capacity(batch_sizes.len());
+
+    for &bs in &batch_sizes {
+        let iters = if bs == 1 {
+            iterations.max(1)
+        } else if bs <= 64 {
+            (iterations / 2).max(20)
+        } else {
+            (iterations / 4).max(10)
+        };
+        let warmup = (iters / 5).max(5);
+        let dummy_data: Vec<f32> = (0..(bs * 784))
+            .map(|i| ((i % 255) as f32 / 255.0 - 0.1307) / 0.3081)
+            .collect();
+
+        for _ in 0..warmup {
+            let vals = engine.forward_probabilities_batch(&dummy_data, bs)?;
+            std::hint::black_box(vals);
+        }
+
+        let mut times_ms = Vec::with_capacity(iters);
+        let npu_before_ns = read_rknpu_busy_ns();
+        for _ in 0..iters {
+            let t0 = Instant::now();
+            let vals = engine.forward_probabilities_batch(&dummy_data, bs)?;
+            std::hint::black_box(vals);
+            times_ms.push(t0.elapsed().as_secs_f64() * 1000.0);
+        }
+        let npu_after_ns = read_rknpu_busy_ns();
+        let rknpu_hw_total_ms =
+            (npu_after_ns.saturating_sub(npu_before_ns) as f64) / 1_000_000.0;
+        let rknpu_hw_per_batch_ms = rknpu_hw_total_ms / (iters as f64);
+
+        times_ms.sort_by(|a, b| a.total_cmp(b));
+        let sum_ms: f64 = times_ms.iter().sum();
+        let mean_batch_ms = sum_ms / (iters as f64);
+        let p50_batch_ms = percentile(&times_ms, 0.50);
+        let p95_batch_ms = percentile(&times_ms, 0.95);
+        let p99_batch_ms = percentile(&times_ms, 0.99);
+        let per_sample_ms = mean_batch_ms / (bs as f64);
+        let throughput_samples_per_sec = 1000.0 / per_sample_ms;
+
+        println!(
+            "  [batch={bs:3}] mean={mean_batch_ms:.3}ms p50={p50_batch_ms:.3}ms p95={p95_batch_ms:.3}ms p99={p99_batch_ms:.3}ms | per_sample={per_sample_ms:.4}ms | throughput={throughput_samples_per_sec:.1} img/s | rknpu_hw_sum={rknpu_hw_per_batch_ms:.3}ms/batch"
+        );
+
+        batch_benchmarks.push(BatchBenchResult {
+            batch_size: bs,
+            iterations: iters,
+            warmup_iterations: warmup,
+            mean_batch_ms,
+            p50_batch_ms,
+            p95_batch_ms,
+            p99_batch_ms,
+            per_sample_ms,
+            throughput_samples_per_sec,
+            panthor_gpu_total_ms: 0.0,
+            panthor_gpu_per_batch_ms: 0.0,
+            rknpu_hw_total_ms,
+            rknpu_hw_per_batch_ms,
+        });
+    }
+
+    Ok(BackendBenchReport {
+        backend_requested: kind.as_str().to_string(),
+        backend_resolved: backend_desc,
+        model_load_ms,
+        single_sample_warmup_ms,
+        test_set_samples,
+        test_set_accuracy,
+        test_set_warmup_ms,
+        test_set_eval_ms,
+        png_samples_total,
+        png_samples_correct,
+        png_samples_accuracy,
+        batch_benchmarks,
+        png_predictions,
+    })
+}
+
 pub fn run_backend_bench(
     kind: BackendKind,
     model_path: &Path,
@@ -84,6 +331,10 @@ pub fn run_backend_bench(
     images_dir: Option<&Path>,
     iterations: usize,
 ) -> Result<BackendBenchReport, String> {
+    if kind.is_npu() {
+        return run_npu_backend_bench(kind, model_path, data_dir, images_dir, iterations);
+    }
+
     let iterations = iterations.max(1);
     let (device, backend_desc) = resolve_device(kind)?;
     println!(
@@ -307,6 +558,8 @@ pub fn run_backend_bench(
             throughput_samples_per_sec,
             panthor_gpu_total_ms,
             panthor_gpu_per_batch_ms,
+            rknpu_hw_total_ms: 0.0,
+            rknpu_hw_per_batch_ms: 0.0,
         });
     }
 

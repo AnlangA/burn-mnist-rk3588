@@ -1,6 +1,7 @@
 pub mod bench;
 pub mod data;
 pub mod model;
+pub mod npu;
 
 #[cfg(test)]
 mod tests {
@@ -10,6 +11,10 @@ mod tests {
         normalize_pixel,
     };
     use crate::model::{BackendKind, MnistCnn, resolve_device};
+    use crate::npu::{
+        RKNB_MAGIC, RknbProfileEntry, parse_rknb_bundle, prediction_from_probabilities,
+        read_sysfs_u64, resolve_rknn_model_path, softmax_row_10,
+    };
     use flate2::{Compression, write::ZlibEncoder};
     use std::io::Write;
     use std::path::Path;
@@ -141,8 +146,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
 
-        // Simulate 3 duplicated file descriptors for DRM client 413 (like Mesa PanVK/Panfrost),
-        // 1 file descriptor for DRM client 414, and 1 non-panthor fd.
         let fd_client_413 = "pos:\t0\ndrm-driver:\tpanthor\ndrm-client-id:\t413\ndrm-engine-panthor:\t250000000 ns\n";
         std::fs::write(dir.join("5"), fd_client_413).unwrap();
         std::fs::write(dir.join("6"), fd_client_413).unwrap();
@@ -159,4 +162,121 @@ mod tests {
 
         assert_eq!(total_ns, 300_000_000);
     }
+
+    #[test]
+    fn npu_backend_parsing_and_bundle_roundtrip() {
+        assert_eq!(BackendKind::parse("npu").unwrap(), BackendKind::Npu);
+        assert_eq!(BackendKind::parse("rknn").unwrap(), BackendKind::Npu);
+        assert_eq!(
+            BackendKind::parse("npu-int8").unwrap(),
+            BackendKind::NpuInt8
+        );
+        assert!(BackendKind::Npu.is_npu());
+        assert!(!BackendKind::Npu.is_int8());
+        assert!(BackendKind::NpuInt8.is_npu());
+        assert!(BackendKind::NpuInt8.is_int8());
+
+        // Too-small buffer rejected
+        assert!(parse_rknb_bundle(b"short", false).is_err());
+
+        // Standalone single-profile buffer fallback
+        let standalone = vec![0x52u8; 64];
+        let parsed_single = parse_rknb_bundle(&standalone, false).unwrap();
+        assert_eq!(parsed_single.len(), 1);
+        assert_eq!(parsed_single[0].batch_size, 1);
+        assert_eq!(parsed_single[0].input_width, 28);
+        assert!(!parsed_single[0].int8);
+
+        // Multi-profile RKNB bundle
+        let mut bundle = vec![0xAAu8; 128];
+        let manifest_json = serde_json::to_vec(&serde_json::json!({
+            "profiles": [
+                {
+                    "name": "fp16_b1",
+                    "batch_size": 1,
+                    "input_width": 28,
+                    "int8": false,
+                    "offset": 0,
+                    "size": 64
+                },
+                {
+                    "name": "int8_b6",
+                    "batch_size": 6,
+                    "input_width": 32,
+                    "int8": true,
+                    "offset": 64,
+                    "size": 64
+                }
+            ]
+        }))
+        .unwrap();
+        let manifest_offset = bundle.len() as u64;
+        let manifest_len = manifest_json.len() as u64;
+        bundle.extend_from_slice(&manifest_json);
+        bundle.extend_from_slice(&manifest_offset.to_le_bytes());
+        bundle.extend_from_slice(&manifest_len.to_le_bytes());
+        bundle.extend_from_slice(RKNB_MAGIC);
+
+        let profiles: Vec<RknbProfileEntry> = parse_rknb_bundle(&bundle, false).unwrap();
+        assert_eq!(profiles.len(), 2);
+        assert_eq!(profiles[0].name, "fp16_b1");
+        assert_eq!(profiles[1].name, "int8_b6");
+        assert_eq!(profiles[1].batch_size, 6);
+        assert_eq!(profiles[1].input_width, 32);
+        assert!(profiles[1].int8);
+
+        // Corrupt manifest offset rejected
+        let mut bad_bundle = bundle.clone();
+        let len = bad_bundle.len();
+        bad_bundle[len - 24..len - 16].copy_from_slice(&999999u64.to_le_bytes());
+        assert!(parse_rknb_bundle(&bad_bundle, false).is_err());
+    }
+
+    #[test]
+    fn npu_softmax_and_sysfs_helpers() {
+        let logits = [0.0f32, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let probs = softmax_row_10(&logits);
+        let sum: f32 = probs.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-5);
+        let pred = prediction_from_probabilities(probs);
+        assert_eq!(pred.digit, 2);
+        assert!(pred.confidence > 0.99);
+
+        let nan_logits = [f32::NAN; 10];
+        let fallback_probs = softmax_row_10(&nan_logits);
+        assert!((fallback_probs.iter().sum::<f32>() - 1.0).abs() < 1e-5);
+
+        let tmp_file =
+            std::env::temp_dir().join(format!("test_rknpu_sysfs_{}", std::process::id()));
+        std::fs::write(&tmp_file, "800000000\n").unwrap();
+        assert_eq!(read_sysfs_u64(&tmp_file), 800_000_000);
+        let _ = std::fs::remove_file(&tmp_file);
+        assert_eq!(read_sysfs_u64(&tmp_file), 0);
+
+        let resolved = resolve_rknn_model_path(Path::new("artifacts/mnist_cnn.bpk"), false);
+        assert!(resolved.to_string_lossy().ends_with(".rknn"));
+    }
+
+    #[test]
+    fn rknn_artifact_bundle_integrity_check() {
+        let rknn_path = Path::new("artifacts/mnist_cnn.rknn");
+        if rknn_path.is_file() {
+            let bytes = std::fs::read(rknn_path).unwrap();
+            let profiles = parse_rknb_bundle(&bytes, false).unwrap();
+            assert_eq!(profiles.len(), 8);
+            for p in &profiles {
+                assert_eq!(&bytes[p.offset..p.offset + 4], b"RKNN");
+            }
+        }
+        let int8_path = Path::new("artifacts/mnist_cnn_int8.rknn");
+        if int8_path.is_file() {
+            let bytes = std::fs::read(int8_path).unwrap();
+            let profiles = parse_rknb_bundle(&bytes, true).unwrap();
+            assert_eq!(profiles.len(), 1);
+            assert_eq!(profiles[0].batch_size, 1);
+            assert!(profiles[0].int8);
+            assert_eq!(&bytes[0..4], b"RKNN");
+        }
+    }
 }
+

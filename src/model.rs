@@ -17,6 +17,8 @@ pub enum BackendKind {
     Gpu,
     GpuVulkan,
     GpuGl,
+    Npu,
+    NpuInt8,
 }
 
 impl BackendKind {
@@ -26,8 +28,10 @@ impl BackendKind {
             "gpu" | "wgpu" | "auto-gpu" => Ok(Self::Gpu),
             "vulkan" | "vk" | "gpu-vulkan" => Ok(Self::GpuVulkan),
             "gl" | "gles" | "opengl" | "gpu-gl" => Ok(Self::GpuGl),
+            "npu" | "rknn" | "rknpu" | "npu-fp16" | "rknn-fp16" => Ok(Self::Npu),
+            "npu-int8" | "rknn-int8" | "int8" => Ok(Self::NpuInt8),
             other => Err(format!(
-                "unknown backend '{other}', expected cpu|gpu|vulkan|gl"
+                "unknown backend '{other}', expected cpu|gpu|vulkan|gl|npu|npu-int8"
             )),
         }
     }
@@ -38,7 +42,17 @@ impl BackendKind {
             Self::Gpu => "gpu",
             Self::GpuVulkan => "vulkan",
             Self::GpuGl => "gl",
+            Self::Npu => "npu",
+            Self::NpuInt8 => "npu-int8",
         }
+    }
+
+    pub fn is_npu(&self) -> bool {
+        matches!(self, Self::Npu | Self::NpuInt8)
+    }
+
+    pub fn is_int8(&self) -> bool {
+        matches!(self, Self::NpuInt8)
     }
 }
 
@@ -107,6 +121,10 @@ pub fn resolve_device(kind: BackendKind) -> Result<(Device, String), String> {
                 Err("GPU backend feature 'gpu' is not enabled at compile time".into())
             }
         }
+        BackendKind::Npu | BackendKind::NpuInt8 => Err(
+            "NPU backend executes directly on Rockchip RKNPU via RknnEngine, not a Burn Device"
+                .into(),
+        ),
     }
 }
 

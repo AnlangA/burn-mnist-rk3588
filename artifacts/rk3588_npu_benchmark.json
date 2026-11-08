@@ -1,0 +1,476 @@
+[
+  {
+    "backend_requested": "npu",
+    "backend_resolved": "RK3588 NPU 3-Core (FP16, librknnrt 1.5.2, drv 0.9.6, 800 MHz)",
+    "model_load_ms": 13.080358,
+    "single_sample_warmup_ms": 0.457949,
+    "test_set_samples": 10000,
+    "test_set_accuracy": 0.9865,
+    "test_set_warmup_ms": 38.305922,
+    "test_set_eval_ms": 485.769529,
+    "png_samples_total": 20,
+    "png_samples_correct": 19,
+    "png_samples_accuracy": 0.95,
+    "batch_benchmarks": [
+      {
+        "batch_size": 1,
+        "iterations": 100,
+        "warmup_iterations": 20,
+        "mean_batch_ms": 0.18416863000000025,
+        "p50_batch_ms": 0.18317999999999998,
+        "p95_batch_ms": 0.185805,
+        "p99_batch_ms": 0.215849,
+        "per_sample_ms": 0.18416863000000025,
+        "throughput_samples_per_sec": 5429.806368218076,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 11.310187,
+        "rknpu_hw_per_batch_ms": 0.11310187000000001
+      },
+      {
+        "batch_size": 16,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 1.1673573399999997,
+        "p50_batch_ms": 1.173751,
+        "p95_batch_ms": 1.300052,
+        "p99_batch_ms": 1.319303,
+        "per_sample_ms": 0.07295983374999998,
+        "throughput_samples_per_sec": 13706.171582387964,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 77.962268,
+        "rknpu_hw_per_batch_ms": 1.5592453599999998
+      },
+      {
+        "batch_size": 64,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 2.9044507,
+        "p50_batch_ms": 2.9113339999999996,
+        "p95_batch_ms": 2.988923,
+        "p99_batch_ms": 2.9938819999999997,
+        "per_sample_ms": 0.0453820421875,
+        "throughput_samples_per_sec": 22035.147644268847,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 249.822007,
+        "rknpu_hw_per_batch_ms": 4.996440140000001
+      },
+      {
+        "batch_size": 256,
+        "iterations": 25,
+        "warmup_iterations": 5,
+        "mean_batch_ms": 12.406011520000002,
+        "p50_batch_ms": 12.420351,
+        "p95_batch_ms": 12.467604999999999,
+        "p99_batch_ms": 12.470813000000001,
+        "per_sample_ms": 0.048460982500000006,
+        "throughput_samples_per_sec": 20635.157366031526,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 460.395372,
+        "rknpu_hw_per_batch_ms": 18.41581488
+      }
+    ],
+    "png_predictions": [
+      {
+        "file_name": "d0_0003.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.999964,
+        "correct": true,
+        "latency_ms": 0.242393
+      },
+      {
+        "file_name": "d0_0010.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.9999881,
+        "correct": true,
+        "latency_ms": 0.27476999999999996
+      },
+      {
+        "file_name": "d1_0002.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99962246,
+        "correct": true,
+        "latency_ms": 0.21614
+      },
+      {
+        "file_name": "d1_0005.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99986696,
+        "correct": true,
+        "latency_ms": 0.28614500000000004
+      },
+      {
+        "file_name": "d2_0001.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99997795,
+        "correct": true,
+        "latency_ms": 0.214974
+      },
+      {
+        "file_name": "d2_0035.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.9999937,
+        "correct": true,
+        "latency_ms": 0.198931
+      },
+      {
+        "file_name": "d3_0018.png",
+        "expected_digit": 3,
+        "predicted_digit": 8,
+        "confidence": 0.9440395,
+        "correct": false,
+        "latency_ms": 0.197473
+      },
+      {
+        "file_name": "d3_0030.png",
+        "expected_digit": 3,
+        "predicted_digit": 3,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.198056
+      },
+      {
+        "file_name": "d4_0004.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9999734,
+        "correct": true,
+        "latency_ms": 0.265436
+      },
+      {
+        "file_name": "d4_0006.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9934782,
+        "correct": true,
+        "latency_ms": 0.213224
+      },
+      {
+        "file_name": "d5_0008.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.84700644,
+        "correct": true,
+        "latency_ms": 0.195722
+      },
+      {
+        "file_name": "d5_0015.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.99921525,
+        "correct": true,
+        "latency_ms": 0.193389
+      },
+      {
+        "file_name": "d6_0011.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.99998546,
+        "correct": true,
+        "latency_ms": 0.26864499999999997
+      },
+      {
+        "file_name": "d6_0021.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999646,
+        "correct": true,
+        "latency_ms": 0.27652
+      },
+      {
+        "file_name": "d7_0000.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999905,
+        "correct": true,
+        "latency_ms": 0.21526499999999998
+      },
+      {
+        "file_name": "d7_0017.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999285,
+        "correct": true,
+        "latency_ms": 0.19688999999999998
+      },
+      {
+        "file_name": "d8_0061.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.20272300000000001
+      },
+      {
+        "file_name": "d8_0084.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999949,
+        "correct": true,
+        "latency_ms": 0.196889
+      },
+      {
+        "file_name": "d9_0007.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.9995167,
+        "correct": true,
+        "latency_ms": 0.194556
+      },
+      {
+        "file_name": "d9_0009.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.99939716,
+        "correct": true,
+        "latency_ms": 0.192805
+      }
+    ]
+  },
+  {
+    "backend_requested": "npu-int8",
+    "backend_resolved": "RK3588 NPU 3-Core (INT8, librknnrt 1.5.2, drv 0.9.6, 800 MHz)",
+    "model_load_ms": 3.030926,
+    "single_sample_warmup_ms": 0.406904,
+    "test_set_samples": 10000,
+    "test_set_accuracy": 0.9864,
+    "test_set_warmup_ms": 33.189844,
+    "test_set_eval_ms": 283.64084299999996,
+    "png_samples_total": 20,
+    "png_samples_correct": 19,
+    "png_samples_accuracy": 0.95,
+    "batch_benchmarks": [
+      {
+        "batch_size": 1,
+        "iterations": 100,
+        "warmup_iterations": 20,
+        "mean_batch_ms": 0.16306799000000016,
+        "p50_batch_ms": 0.161886,
+        "p95_batch_ms": 0.16422,
+        "p99_batch_ms": 0.19513899999999998,
+        "per_sample_ms": 0.16306799000000016,
+        "throughput_samples_per_sec": 6132.411394780785,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 8.852138,
+        "rknpu_hw_per_batch_ms": 0.08852138
+      },
+      {
+        "batch_size": 16,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 0.8287137,
+        "p50_batch_ms": 0.8511449999999999,
+        "p95_batch_ms": 1.000489,
+        "p99_batch_ms": 1.00603,
+        "per_sample_ms": 0.05179460625,
+        "throughput_samples_per_sec": 19307.029677438662,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 53.514771,
+        "rknpu_hw_per_batch_ms": 1.07029542
+      },
+      {
+        "batch_size": 64,
+        "iterations": 50,
+        "warmup_iterations": 10,
+        "mean_batch_ms": 2.0334986799999997,
+        "p50_batch_ms": 2.014103,
+        "p95_batch_ms": 2.260871,
+        "p99_batch_ms": 2.280705,
+        "per_sample_ms": 0.031773416874999995,
+        "throughput_samples_per_sec": 31472.850525774626,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 150.058148,
+        "rknpu_hw_per_batch_ms": 3.00116296
+      },
+      {
+        "batch_size": 256,
+        "iterations": 25,
+        "warmup_iterations": 5,
+        "mean_batch_ms": 7.115964279999998,
+        "p50_batch_ms": 7.104635,
+        "p95_batch_ms": 7.192432999999999,
+        "p99_batch_ms": 7.282565,
+        "per_sample_ms": 0.027796735468749993,
+        "throughput_samples_per_sec": 35975.447588952775,
+        "panthor_gpu_total_ms": 0.0,
+        "panthor_gpu_per_batch_ms": 0.0,
+        "rknpu_hw_total_ms": 272.296498,
+        "rknpu_hw_per_batch_ms": 10.89185992
+      }
+    ],
+    "png_predictions": [
+      {
+        "file_name": "d0_0003.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.9999664,
+        "correct": true,
+        "latency_ms": 0.210015
+      },
+      {
+        "file_name": "d0_0010.png",
+        "expected_digit": 0,
+        "predicted_digit": 0,
+        "confidence": 0.99998915,
+        "correct": true,
+        "latency_ms": 0.253477
+      },
+      {
+        "file_name": "d1_0002.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.99961394,
+        "correct": true,
+        "latency_ms": 0.18551299999999998
+      },
+      {
+        "file_name": "d1_0005.png",
+        "expected_digit": 1,
+        "predicted_digit": 1,
+        "confidence": 0.9998678,
+        "correct": true,
+        "latency_ms": 0.24881000000000003
+      },
+      {
+        "file_name": "d2_0001.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99997973,
+        "correct": true,
+        "latency_ms": 0.191056
+      },
+      {
+        "file_name": "d2_0035.png",
+        "expected_digit": 2,
+        "predicted_digit": 2,
+        "confidence": 0.99999404,
+        "correct": true,
+        "latency_ms": 0.17530500000000002
+      },
+      {
+        "file_name": "d3_0018.png",
+        "expected_digit": 3,
+        "predicted_digit": 8,
+        "confidence": 0.9410262,
+        "correct": false,
+        "latency_ms": 0.188139
+      },
+      {
+        "file_name": "d3_0030.png",
+        "expected_digit": 3,
+        "predicted_digit": 3,
+        "confidence": 0.9999994,
+        "correct": true,
+        "latency_ms": 0.18113800000000002
+      },
+      {
+        "file_name": "d4_0004.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9999765,
+        "correct": true,
+        "latency_ms": 0.173846
+      },
+      {
+        "file_name": "d4_0006.png",
+        "expected_digit": 4,
+        "predicted_digit": 4,
+        "confidence": 0.9930982,
+        "correct": true,
+        "latency_ms": 0.171804
+      },
+      {
+        "file_name": "d5_0008.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.8466728,
+        "correct": true,
+        "latency_ms": 0.170345
+      },
+      {
+        "file_name": "d5_0015.png",
+        "expected_digit": 5,
+        "predicted_digit": 5,
+        "confidence": 0.9992126,
+        "correct": true,
+        "latency_ms": 0.174429
+      },
+      {
+        "file_name": "d6_0011.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999865,
+        "correct": true,
+        "latency_ms": 0.172387
+      },
+      {
+        "file_name": "d6_0021.png",
+        "expected_digit": 6,
+        "predicted_digit": 6,
+        "confidence": 0.9999652,
+        "correct": true,
+        "latency_ms": 0.113758
+      },
+      {
+        "file_name": "d7_0000.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.99999905,
+        "correct": true,
+        "latency_ms": 0.114633
+      },
+      {
+        "file_name": "d7_0017.png",
+        "expected_digit": 7,
+        "predicted_digit": 7,
+        "confidence": 0.9999926,
+        "correct": true,
+        "latency_ms": 0.114634
+      },
+      {
+        "file_name": "d8_0061.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999999,
+        "correct": true,
+        "latency_ms": 0.117259
+      },
+      {
+        "file_name": "d8_0084.png",
+        "expected_digit": 8,
+        "predicted_digit": 8,
+        "confidence": 0.9999949,
+        "correct": true,
+        "latency_ms": 0.115217
+      },
+      {
+        "file_name": "d9_0007.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.9994917,
+        "correct": true,
+        "latency_ms": 0.113466
+      },
+      {
+        "file_name": "d9_0009.png",
+        "expected_digit": 9,
+        "predicted_digit": 9,
+        "confidence": 0.99935323,
+        "correct": true,
+        "latency_ms": 0.112008
+      }
+    ]
+  }
+]
