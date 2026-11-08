@@ -68,7 +68,8 @@ pub fn resolve_device(kind: BackendKind) -> Result<(Device, String), String> {
                     return Ok((dev, "Burn WGPU (OpenGL ES)".to_string()));
                 }
                 let dev = Device::wgpu(Default::default());
-                Ok((dev, format!("Burn WGPU ({dev:?})")))
+                let desc = format!("Burn WGPU ({dev:?})");
+                Ok((dev, desc))
             }
             #[cfg(not(feature = "gpu"))]
             {
