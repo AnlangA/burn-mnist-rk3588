@@ -1,0 +1,19 @@
+[package]
+name = "burn-mnist-rk3588"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+description = "Rust Burn MNIST handwritten digit recognition training and RK3588 CPU/GPU inference benchmark framework"
+repository = "https://github.com/AnlangA/burn-mnist-rk3588"
+
+[features]
+default = ["cpu", "gpu"]
+cpu = ["burn/flex", "burn/simd", "burn/rayon"]
+gpu = ["burn/wgpu"]
+
+[dependencies]
+burn = { version = "0.22.1", default-features = false, features = ["std", "optim", "vision", "store", "safetensors"] }
+flate2 = "1.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
