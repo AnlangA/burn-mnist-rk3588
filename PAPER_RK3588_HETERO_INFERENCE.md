@@ -56,17 +56,17 @@ This work makes the following technical contributions, all fully reproducible fr
 
 The target network [`MnistCnn`](src/model.rs) processes normalized single-channel grayscale images $X \in \mathbb{R}^{B \times 1 \times 28 \times 28}$, where raw pixel intensities $P_ {b,0,h,w} \in [0, 255]$ are standardized via:
 
-$$X_ {b,0,h,w} = \frac{P_ {b,0,h,w} / 255.0 - \mu}{\sigma}, \quad \mu = 0.1307, \quad \sigma = 0.3081$$
+<p align="center">$X_ {b,0,h,w} = \frac{P_ {b,0,h,w} / 255.0 - \mu}{\sigma}, \qquad \mu = 0.1307, \qquad \sigma = 0.3081$</p>
 
-The forward operator $\mathcal{F}_ {\Theta}: \mathbb{R}^{B \times 1 \times 28 \times 28} \to \Delta^{9}$ consists of two convolutional-pooling stages followed by two fully connected layers:
+The forward operator $\mathcal{F}_ {\Theta}: \mathbb{R}^{B \times 1 \times 28 \times 28} \to \Delta^{9}$ consists of two convolutional-pooling stages ($3 \times 3$ valid convolution + $\mathrm{ReLU}$ + $2 \times 2$ stride-2 max-pooling) followed by two fully connected layers:
 
-$$Z^{(1)} = \text{MaxPool2d}_ {2\times 2, s=2}\left(\text{ReLU}\left(\text{Conv2d}_ {3\times 3, \text{valid}}\left(X;\quad W^{(1)}, b^{(1)}\right)\right)\right) \in \mathbb{R}^{B \times 16 \times 13 \times 13}$$
+<p align="center">$Z^{(1)} = \mathrm{MaxPool2d}\left(\mathrm{ReLU}\left(\mathrm{Conv2d}\left(X;\quad W^{(1)}, b^{(1)}\right)\right)\right) \in \mathbb{R}^{B \times 16 \times 13 \times 13}$</p>
 
-$$Z^{(2)} = \text{MaxPool2d}_ {2\times 2, s=2}\left(\text{ReLU}\left(\text{Conv2d}_ {3\times 3, \text{valid}}\left(Z^{(1)};\quad W^{(2)}, b^{(2)}\right)\right)\right) \in \mathbb{R}^{B \times 32 \times 5 \times 5}$$
+<p align="center">$Z^{(2)} = \mathrm{MaxPool2d}\left(\mathrm{ReLU}\left(\mathrm{Conv2d}\left(Z^{(1)};\quad W^{(2)}, b^{(2)}\right)\right)\right) \in \mathbb{R}^{B \times 32 \times 5 \times 5}$</p>
 
-$$Z^{(3)} = \text{ReLU}\left(\text{Flatten}\left(Z^{(2)}\right) W^{(3)} + \mathbf{1}_ {B} {b^{(3)}}^\top\right) \in \mathbb{R}^{B \times 128}$$
+<p align="center">$Z^{(3)} = \mathrm{ReLU}\left(\mathrm{Flatten}\left(Z^{(2)}\right) W^{(3)} + \mathbf{1}_ {B} {b^{(3)}}^\top\right) \in \mathbb{R}^{B \times 128}$</p>
 
-$$\hat{Y} = \text{Softmax}\left(Z^{(3)} W^{(4)} + \mathbf{1}_ {B} {b^{(4)}}^\top\right) \in \mathbb{R}^{B \times 10}$$
+<p align="center">$\hat{Y} = \mathrm{Softmax}\left(Z^{(3)} W^{(4)} + \mathbf{1}_ {B} {b^{(4)}}^\top\right) \in \mathbb{R}^{B \times 10}$</p>
 
 Table 1 details the exact layer-by-layer tensor dimensions, parameter count $\lvert\Theta_\ell\rvert$, multiply-accumulate operations (MACs), floating-point operations (FLOPs, counting 2 FLOPs/MAC plus activation/pooling comparisons), and parameter vs. compute ratios per sample ($B = 1$).
 
@@ -74,12 +74,12 @@ Table 1 details the exact layer-by-layer tensor dimensions, parameter count $\lv
 
 | Layer $\ell$ | Operator Specification | Input Shape | Output Shape | Parameters $\lvert\Theta_\ell\rvert$ | FP32 Weight Bytes | MACs / Sample | FLOPs / Sample | % of Params | % of MACs |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `conv1` | $\text{Conv2d}(1 \to 16, 3\times 3, \text{Valid})$ | `[1, 1, 28, 28]` | `[1, 16, 26, 26]` | 160 | 640 B | 97,344 | 194,688 | 0.15% | 12.83% |
-| `relu1` + `pool1` | $\text{ReLU} + \text{MaxPool2d}(2\times 2, s=2)$ | `[1, 16, 26, 26]` | `[1, 16, 13, 13]` | 0 | 0 B | 0 | 18,928 | 0.00% | 0.00% |
-| `conv2` | $\text{Conv2d}(16 \to 32, 3\times 3, \text{Valid})$ | `[1, 16, 13, 13]` | `[1, 32, 11, 11]` | 4,640 | 18,560 B | 557,568 | 1,115,136 | 4.27% | **73.50%** |
-| `relu2` + `pool2` | $\text{ReLU} + \text{MaxPool2d}(2\times 2, s=2)$ | `[1, 32, 11, 11]` | `[1, 32, 5, 5]` | 0 | 0 B | 0 | 6,272 | 0.00% | 0.00% |
-| `fc1` + `relu3` | $\text{Linear}(800 \to 128) + \text{ReLU}$ | `[1, 800]` | `[1, 128]` | 102,528 | 410,112 B | 102,400 | 204,928 | **94.39%** | 13.50% |
-| `fc2` + `softmax` | $\text{Linear}(128 \to 10) + \text{Softmax}$ | `[1, 128]` | `[1, 10]` | 1,290 | 5,160 B | 1,280 | 2,610 | 1.19% | 0.17% |
+| `conv1` | $\mathrm{Conv2d}(1 \to 16, 3\times 3, \mathrm{Valid})$ | `[1, 1, 28, 28]` | `[1, 16, 26, 26]` | 160 | 640 B | 97,344 | 194,688 | 0.15% | 12.83% |
+| `relu1` + `pool1` | $\mathrm{ReLU} + \mathrm{MaxPool2d}(2\times 2, s=2)$ | `[1, 16, 26, 26]` | `[1, 16, 13, 13]` | 0 | 0 B | 0 | 18,928 | 0.00% | 0.00% |
+| `conv2` | $\mathrm{Conv2d}(16 \to 32, 3\times 3, \mathrm{Valid})$ | `[1, 16, 13, 13]` | `[1, 32, 11, 11]` | 4,640 | 18,560 B | 557,568 | 1,115,136 | 4.27% | **73.50%** |
+| `relu2` + `pool2` | $\mathrm{ReLU} + \mathrm{MaxPool2d}(2\times 2, s=2)$ | `[1, 32, 11, 11]` | `[1, 32, 5, 5]` | 0 | 0 B | 0 | 6,272 | 0.00% | 0.00% |
+| `fc1` + `relu3` | $\mathrm{Linear}(800 \to 128) + \mathrm{ReLU}$ | `[1, 800]` | `[1, 128]` | 102,528 | 410,112 B | 102,400 | 204,928 | **94.39%** | 13.50% |
+| `fc2` + `softmax` | $\mathrm{Linear}(128 \to 10) + \mathrm{Softmax}$ | `[1, 128]` | `[1, 10]` | 1,290 | 5,160 B | 1,280 | 2,610 | 1.19% | 0.17% |
 | **Total** | **End-to-End Forward Pass** | **`[1, 1, 28, 28]`** | **`[1, 10]`** | **108,618** | **434,472 B** | **758,592** | **1,542,562** | **100.0%** | **100.0%** |
 
 ### 2.2 Roofline Model and Arithmetic Intensity Across Batch Sizes
@@ -90,7 +90,7 @@ Table 1 exposes a striking **Compute-vs-Memory Structural Duality**:
 
 Let $F_ {\text{sample}} = 1.5426 \times 10^6\text{ FLOPs}$ denote the per-sample floating-point operations, $M_ {\Theta}(b_ {\text{w}}) = \lvert\Theta\rvert \cdot b_ {\text{w}}$ denote the weight footprint for precision $b_ {\text{w}} \in \lbrace 4, 2, 1 \rbrace\text{ bytes}$ (FP32, FP16, INT8), and $M_ {\text{act}}(b_ {\text{a}})$ denote the per-sample activation memory traffic. Under an unfused layer-by-layer execution model (such as GPU compute shaders writing intermediate tensors back to global/cache memory), each sample reads and writes 19,114 elements ($M_ {\text{act}}(4) \approx 76,456\text{ B}$). Under whole-graph SRAM fusion on the RKNPU, only the input image (784 elements) and output logits (10 elements) traverse external DRAM. The operational **Arithmetic Intensity** $\mathcal{I}(B)$ (in FLOPs/Byte or OPs/Byte) as a function of batch size $B$ is:
 
-$$\mathcal{I}_ {\text{unfused}}(B) = \frac{B \cdot F_ {\text{sample}}}{\lvert\Theta\rvert \cdot b_ {\text{w}} + B \cdot M_ {\text{act}}(b_ {\text{a}})}, \qquad \mathcal{I}_ {\text{fused}}(B) = \frac{B \cdot F_ {\text{sample}}}{\lvert\Theta\rvert \cdot b_ {\text{w}} + B \cdot (784 b_ {\text{in}} + 10 b_ {\text{out}})}$$
+<p align="center">$\mathcal{I}_ {\text{unfused}}(B) = \frac{B \cdot F_ {\text{sample}}}{\lvert\Theta\rvert \cdot b_ {\text{w}} + B \cdot M_ {\text{act}}(b_ {\text{a}})}, \qquad \mathcal{I}_ {\text{fused}}(B) = \frac{B \cdot F_ {\text{sample}}}{\lvert\Theta\rvert \cdot b_ {\text{w}} + B \cdot (784 b_ {\text{in}} + 10 b_ {\text{out}})}$</p>
 
 At $B = 1$ in FP32 (`b_w = 4`), $\mathcal{I}_ {\text{unfused}}(1) \approx \frac{1.5426 \times 10^6}{434,472 + 76,456} \approx \mathbf{3.02\text{ FLOPs/Byte}}$, placing `fc1` deeply in the memory-bandwidth and launch-latency bound regime on a GPU. However, because $434\text{ KB} + 76\text{ KB} = 510\text{ KB}$ fits entirely inside a single RK3588 Cortex-A76 core's **512 KB private L2 cache** and the **3 MB shared DynamIQ L3 cache**, the CPU completely avoids LPDDR4X DRAM round-trips during steady-state inference. At $B = 256$, weight reuse amortizes $M_ {\Theta}$ by 256×, raising $\mathcal{I}_ {\text{unfused}}(256) \approx \mathbf{19.79\text{ FLOPs/Byte}}$ (FP32) and $\mathcal{I}_ {\text{fused, INT8}}(256) \approx \mathbf{429.8\text{ OPs/Byte}}$.
 
@@ -98,15 +98,15 @@ At $B = 1$ in FP32 (`b_w = 4`), $\mathcal{I}_ {\text{unfused}}(1) \approx \frac{
 
 A critical hardware constraint of the Rockchip RKNPU2 DMA engine (`librknnrt v1.5.2`) is that when compiling or executing 4D NHWC tensors $[B, H, W, C]$ with batch size $B > 1$, the hardware enforces an 8-element width stride alignment:
 
-$$W_ {\text{stride}} = 8 \left\lceil \frac{W}{8} \right\rceil$$
+<p align="center">$W_ {\text{stride}} = 8 \left\lceil \frac{W}{8} \right\rceil$</p>
 
 For MNIST where $W = 28$, $W_ {\text{stride}} = 32 \neq 28$. If an ONNX graph with input $[B, 1, 28, 28]$ is compiled directly for $B > 1$, `rknn-toolkit2` either rejects the multi-batch tensor layout or injects an unaligned `Slice` / `Gather` reshape node that stalls the NPU DMA pipeline.
 
-To eliminate this bottleneck with **zero runtime operator overhead**, we pad each input image row from $W = 28$ to $W' = 32$ by setting columns $x \in \lbrace 28, 29, 30, 31 \rbrace$ to zero, and simultaneously transform the `fc1` weight tensor $W^{(3)}$. Specifically, viewing the transpose of $W^{(3)} \in \mathbb{R}^{800 \times 128}$ as a 4D spatial filter bank $\mathcal{W}^{(3)} \in \mathbb{R}^{128 \times 32 \times 5 \times 5}$, we construct the width-extended weight tensor $\widetilde{\mathcal{W}}^{(3)} \in \mathbb{R}^{128 \times 32 \times 5 \times 6}$ defined by:
+To eliminate this bottleneck with **zero runtime operator overhead**, we pad each input image row from $W = 28$ to $W' = 32$ by setting columns $x \in \lbrace 28, 29, 30, 31 \rbrace$ to zero, and simultaneously transform the `fc1` weight tensor $W^{(3)}$. Specifically, viewing the transpose of $W^{(3)} \in \mathbb{R}^{800 \times 128}$ as a 4D spatial filter bank $\mathcal{W}^{(3)} \in \mathbb{R}^{128 \times 32 \times 5 \times 5}$, we construct the width-extended weight tensor $\hat{\mathcal{W}}^{(3)} \in \mathbb{R}^{128 \times 32 \times 5 \times 6}$ defined by:
 
-$$\widetilde{\mathcal{W}}^{(3)}_ {j, c, v, u} = \begin{cases} \mathcal{W}^{(3)}_ {j, c, v, u}, \quad \text{if } 0 \le u \le 4, \\\\ 0, \quad \text{if } u = 5. \end{cases}$$
+<p align="center">$\hat{\mathcal{W}}_ {j, c, v, u}^{(3)} = \mathcal{W}_ {j, c, v, u}^{(3)} \quad (0 \le u \le 4), \qquad \hat{\mathcal{W}}_ {j, c, v, 5}^{(3)} = 0$</p>
 
-**Theorem 1 (Receptive-Field Invariance under Width-32 Padding).** Let $\widetilde{X} \in \mathbb{R}^{B \times 1 \times 28 \times 32}$ be any width-padded input tensor satisfying $\widetilde{X}_ {b,0,y,x} = X_ {b,0,y,x}$ for $0 \le x < 28$. Let $\widetilde{Z}^{(2)} \in \mathbb{R}^{B \times 32 \times 5 \times 6}$ denote the output of `pool2` when `MnistCnn` is evaluated on $\widetilde{X}$. Then for every batch index $b$, channel $c \in [0, 31]$, vertical coordinate $v \in [0, 4]$, and horizontal coordinate $u \in [0, 4]$, we have $\widetilde{Z}^{(2)}_ {b,c,v,u} = Z^{(2)}_ {b,c,v,u}$, and the `fc1` pre-activation satisfies $\widetilde{Z}^{(3)} = Z^{(3)}$ identically.
+**Theorem 1 (Receptive-Field Invariance under Width-32 Padding).** Let $\hat{X} \in \mathbb{R}^{B \times 1 \times 28 \times 32}$ be any width-padded input tensor satisfying $\hat{X}_ {b,0,y,x} = X_ {b,0,y,x}$ for $0 \le x < 28$. Let $\hat{Z}^{(2)} \in \mathbb{R}^{B \times 32 \times 5 \times 6}$ denote the output of `pool2` when `MnistCnn` is evaluated on $\hat{X}$. Then for every batch index $b$, channel $c \in [0, 31]$, vertical coordinate $v \in [0, 4]$, and horizontal coordinate $u \in [0, 4]$, we have $\hat{Z}_ {b,c,v,u}^{(2)} = Z_ {b,c,v,u}^{(2)}$, and the `fc1` pre-activation satisfies $\hat{Z}^{(3)} = Z^{(3)}$ identically.
 
 *Proof.* Trace the horizontal spatial dimensions through the valid convolutions and stride-2 max-pooling layers for input width $W' = 32$:
 1. `conv1` ($K_w = 3, s = 1, p = 0$) maps width $32 \to 30$, where column $u_0 \in [0, 29]$ depends on input columns $[u_0, u_0 + 2]$.
@@ -114,15 +114,15 @@ $$\widetilde{\mathcal{W}}^{(3)}_ {j, c, v, u} = \begin{cases} \mathcal{W}^{(3)}_
 3. `conv2` ($K_w = 3, s = 1, p = 0$) maps width $15 \to 13$, where column $u_2 \in [0, 12]$ depends on `pool1` columns $[u_2, u_2 + 2]$, and thus on input columns $[2u_2, 2u_2 + 7]$.
 4. `pool2` ($K_w = 2, s = 2$) maps width $13 \to \lfloor 13 / 2 \rfloor = 6$, where column $u \in [0, 5]$ depends on `conv2` columns $\lbrace 2u, 2u + 1 \rbrace$, and therefore has the exact horizontal input receptive field:
 
-$$\mathcal{R}_ {\text{in}}(u) = [4u, \quad 4u + 9]$$
+<p align="center">$\mathcal{R}_ {\text{in}}(u) = [4u, \quad 4u + 9]$</p>
 
 For all original spatial columns $u \in \lbrace 0, 1, 2, 3, 4 \rbrace$, the maximum input column index accessed is $4(4) + 9 = 25 \le 27$. Hence:
 
-$$\bigcup_ {u=0}^{4} \mathcal{R}_ {\text{in}}(u) = [0, 25] \subset [0, 27], \qquad \left(\bigcup_ {u=0}^{4} \mathcal{R}_ {\text{in}}(u)\right) \cap \lbrace 28, 29, 30, 31 \rbrace = \emptyset$$
+<p align="center">$\bigcup_ {u=0}^{4} \mathcal{R}_ {\text{in}}(u) = [0, 25] \subset [0, 27], \qquad \left(\bigcup_ {u=0}^{4} \mathcal{R}_ {\text{in}}(u)\right) \cap \lbrace 28, 29, 30, 31 \rbrace = \emptyset$</p>
 
-Thus $\widetilde{Z}^{(2)}_ {b,c,v,u} = Z^{(2)}_ {b,c,v,u}$ for all $u \in \lbrace 0, 1, 2, 3, 4 \rbrace$. Finally, for the extra column $u = 5$ in $\widetilde{Z}^{(2)}$, the `fc1` inner product multiplies $\widetilde{Z}^{(2)}_ {b,c,v,5}$ by $\widetilde{\mathcal{W}}^{(3)}_ {j,c,v,5} \equiv 0$:
+Thus $\hat{Z}_ {b,c,v,u}^{(2)} = Z_ {b,c,v,u}^{(2)}$ for all $u \in \lbrace 0, 1, 2, 3, 4 \rbrace$. Finally, for the extra column $u = 5$ in $\hat{Z}^{(2)}$, the `fc1` inner product multiplies $\hat{Z}_ {b,c,v,5}^{(2)}$ by $\hat{\mathcal{W}}_ {j,c,v,5}^{(3)} \equiv 0$:
 
-$$\widetilde{Z}^{(3)}_ {b,j} = b^{(3)}_ {j} + \sum_ {c=0}^{31} \sum_ {v=0}^{4} \sum_ {u=0}^{4} \mathcal{W}^{(3)}_ {j,c,v,u} Z^{(2)}_ {b,c,v,u} + \sum_ {c=0}^{31} \sum_ {v=0}^{4} 0 \cdot \widetilde{Z}^{(2)}_ {b,c,v,5} = Z^{(3)}_ {b,j} \quad \blacksquare$$
+<p align="center">$\hat{Z}_ {b,j}^{(3)} = b_ {j}^{(3)} + \sum_ {c=0}^{31} \sum_ {v=0}^{4} \sum_ {u=0}^{4} \mathcal{W}_ {j,c,v,u}^{(3)} Z_ {b,c,v,u}^{(2)} + \sum_ {c=0}^{31} \sum_ {v=0}^{4} 0 \cdot \hat{Z}_ {b,c,v,5}^{(2)} = Z_ {b,j}^{(3)} \quad \blacksquare$</p>
 
 Implemented in [`scripts/export_and_build_rknn.py`](scripts/export_and_build_rknn.py) and [`src/npu.rs`](src/npu.rs), Theorem 1 yields bit-for-bit identical ONNX logits (`9,866 / 10,000` test accuracy) while allowing the NPU DMA engine to stream 32-element aligned rows at full bus bandwidth.
 
@@ -139,7 +139,7 @@ To avoid managing 8 separate model files on the embedded filesystem while preser
 
 At runtime, `RknnThreeCoreTier` in [`src/npu.rs`](src/npu.rs) binds three independent `RknnContext` instances to `Core 0`, `Core 1`, and `Core 2` via `rknn_set_core_mask()`. To eliminate OS thread-spawning overhead during inference, `Core 1` and `Core 2` are hosted by persistent worker threads (`PersistentCoreWorker`) synchronized via generation-counted condition variables, while `Core 0` executes directly on the calling thread. For a batch of size $B$, a single wave partitions $B = c_0 + c_1 + c_2$ with:
 
-$$c_0 = \min\left(\left\lceil \frac{B}{3} \right\rceil, b_ {\text{tier}}\right), \quad c_1 = \min\left(\left\lceil \frac{B - c_0}{2} \right\rceil, b_ {\text{tier}}\right), \quad c_2 = \min\left(B - c_0 - c_1, b_ {\text{tier}}\right)$$
+<p align="center">$c_0 = \min\left(\left\lceil \frac{B}{3} \right\rceil, b_ {\text{tier}}\right), \qquad c_1 = \min\left(\left\lceil \frac{B - c_0}{2} \right\rceil, b_ {\text{tier}}\right), \qquad c_2 = \min\left(B - c_0 - c_1, b_ {\text{tier}}\right)$</p>
 
 and executes all three NPU cores concurrently.
 
@@ -183,11 +183,11 @@ To prevent cross-backend symbol bloat and dynamic library interference, the proj
 
 In addition to host wall-clock latency measured via `std::time::Instant` around full forward execution and output synchronization, [`src/model.rs`](src/model.rs) and [`src/npu.rs`](src/npu.rs) collect hardware-level accelerator counters:
 
-1. **Mali-G610 GPU Engine Telemetry (`panthor`)**: With `/sys/bus/platform/devices/fb000000.gpu/profiling` set to `3`, the Linux `panthor` DRM driver exports cumulative hardware execution nanoseconds per DRM context in `/proc/<pid>/fdinfo/*` under the `drm-engine-panthor: <ns> ns` key. Because Mesa's `PanVK` and `Panfrost` drivers `dup()` the `/dev/dri/renderD128` file descriptor across multiple internal queues sharing the same `drm-client-id`, `parse_panthor_fdinfo_dir()` in [`src/model.rs`](src/model.rs) deduplicates descriptors by `drm-client-id` before summing hardware execution time:
+1. **Mali-G610 GPU Engine Telemetry (`panthor`)**: With `/sys/bus/platform/devices/fb000000.gpu/profiling` set to `3`, the Linux `panthor` DRM driver exports cumulative hardware execution nanoseconds per DRM context in `/proc/<pid>/fdinfo/*` under the `drm-engine-panthor: <ns> ns` key. Because Mesa's `PanVK` and `Panfrost` drivers `dup()` the `/dev/dri/renderD128` file descriptor across multiple internal queues sharing the same `drm-client-id`, `parse_panthor_fdinfo_dir()` in [`src/model.rs`](src/model.rs) deduplicates descriptors across the set of unique client contexts $\mathcal{C}(\text{pid})$ before summing hardware execution time:
 
-$$T_ {\text{panthor}} = \sum_ {c \in \text{UniqueClients}(\text{pid})} \max_ {fd \in \mathcal{F}(c)} \text{ns}(fd)$$
+<p align="center">$T_ {\text{panthor}} = \sum_ {c \in \mathcal{C}(\text{pid})} \max_ {f \in \mathcal{F}(c)} \mathrm{ns}(f)$</p>
 
-2. **RKNPU Hardware MAC Execution Telemetry (`rknpu_perf_run`)**: During each `rknn_run()` invocation, the NPU hardware performance counter measures exact accelerator busy microseconds (`RKNN_QUERY_PERF_RUN` / kernel `rknpu` busy timer), recorded as `rknpu_hw_total_ms` and `rknpu_hw_per_batch_ms`. Note that for $B \in \lbrace 16, 64, 256 \rbrace$, 3-core wave execution runs `Core 0`, `Core 1`, and `Core 2` simultaneously; thus `rknpu_hw_per_batch_ms` reports the **sum of hardware core-milliseconds across all 3 cores** ($\Sigma_ {k=0}^{2} T_ {\text{core}, k}$), which can exceed the wall-clock `mean_batch_ms` by up to $1.5\times \sim 1.8\times$—providing direct empirical proof of multi-core hardware concurrency.
+2. **RKNPU Hardware MAC Execution Telemetry (`rknpu_perf_run`)**: During each `rknn_run()` invocation, the NPU hardware performance counter measures exact accelerator busy microseconds (`RKNN_QUERY_PERF_RUN` / kernel `rknpu` busy timer), recorded as `rknpu_hw_total_ms` and `rknpu_hw_per_batch_ms`. Note that for $B \in \lbrace 16, 64, 256 \rbrace$, 3-core wave execution runs `Core 0`, `Core 1`, and `Core 2` simultaneously; thus `rknpu_hw_per_batch_ms` reports the **sum of hardware core-milliseconds across all 3 cores** ($\sum_ {k=0}^{2} T_ {\text{core}, k}$), which can exceed the wall-clock `mean_batch_ms` by up to $1.5\times \sim 1.8\times$—providing direct empirical proof of multi-core hardware concurrency.
 
 ---
 
@@ -281,9 +281,9 @@ Tables 5 and 6 report the steady-state latency distribution (Mean, P50, P95, P99
 At $B = 1$, decomposing the end-to-end latency on `RKNPU INT8` (`0.1631 ms` = `163.1 µs`) and `RKNPU FP16` (`0.1842 ms` = `184.2 µs`) using the hardware performance counter reveals:
 - **Pure NPU Systolic MAC + SRAM Execution ($T_ {\text{hw}}$)**: `88.5 µs` (`0.0885 ms`) for INT8 and `113.1 µs` (`0.1131 ms`) for FP16. Because the offline `rknn-toolkit2` compiler (`optimization_level = 3`) fuses `Conv2d + ReLU + MaxPool2d` and keeps intermediate feature maps ($Z^{(1)} \in \mathbb{R}^{16\times 13\times 13}$ and $Z^{(2)} \in \mathbb{R}^{32\times 5\times 5}$) inside the NPU's internal SRAM, external DRAM traffic is restricted to fetching the compressed weights (`106 KB` INT8 / `212 KB` FP16) and the 784-float input vector.
 - **Host-to-NPU Driver & Softmax Overhead ($T_ {\text{sw}} = T_ {\text{e2e}} - T_ {\text{hw}}$)**: Only `74.6 µs` (INT8) and `71.1 µs` (FP16) are spent in `rknn_inputs_set()` (NHWC float-to-INT8/FP16 input quantization & cache flush), `/dev/rknpu` `DRM_IOCTL_RKNPU_SUBMIT` ioctl traversal, `rknn_outputs_get()`, and host-side 10-class Softmax normalization.
-- **3-Core Concurrency Efficiency at $B = 256$**: At $B = 256$ (`tier_b86`, where `Core 0` processes 86 images, `Core 1` processes 85 images, and `Core 2` processes 85 images), the cumulative hardware core time across all three cores is $\Sigma_ {k=0}^{2} T_ {\text{hw}, k} = 10.892\text{ ms}$ (mean `3.631 ms` per physical core), while the wall-clock batch latency is `7.116 ms` (INT8) and `9.915 ms` (FP16 in `bench`). The effective multi-core parallel speedup factor over sequential single-core NPU execution is:
+- **3-Core Concurrency Efficiency at $B = 256$**: At $B = 256$ (`tier_b86`, where `Core 0` processes 86 images, `Core 1` processes 85 images, and `Core 2` processes 85 images), the cumulative hardware core time across all three cores is $\sum_ {k=0}^{2} T_ {\text{hw}, k} = 10.892\text{ ms}$ (mean `3.631 ms` per physical core), while the wall-clock batch latency is `7.116 ms` (INT8) and `9.915 ms` (FP16 in `bench`). The effective multi-core parallel speedup factor over sequential single-core NPU execution is:
 
-$$S_ {\text{3-core}} = \frac{\Sigma_ {k=0}^{2} T_ {\text{hw}, k} + T_ {\text{sw, seq}}}{T_ {\text{wall}}} \approx 2.20\times \sim 2.58\times$$
+<p align="center">$S_ {\text{3-core}} = \frac{\sum_ {k=0}^{2} T_ {\text{hw}, k} + T_ {\text{sw, seq}}}{T_ {\text{wall}}} \approx 2.20\times \sim 2.58\times$</p>
 
 bound primarily by shared LPDDR4X memory controller arbitration when all three NPU DMA engines burst simultaneously, alongside the $28 \to 32$ row-padding copy on the host thread. Even with shared bus arbitration, per-sample latency drops from `163.1 µs` ($B = 1$) to **`27.8 µs`** ($B = 256$), achieving **`35,975.4 samples/s`**.
 

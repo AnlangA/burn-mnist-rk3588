@@ -40,13 +40,19 @@
 
 ## 2. 模型拓扑与计算复杂度分析 (Model Topology, FLOPs & Memory Footprint Analysis)
 
-目标模型 `MnistCnn`（[`src/model.rs`](src/model.rs)）对归一化后的输入张量 $X^{(0)} \in \mathbb{R}^{B \times 1 \times 28 \times 28}$ 执行如下复合映射：
+目标模型 `MnistCnn`（[`src/model.rs`](src/model.rs)）对归一化后的输入张量 $X^{(0)} \in \mathbb{R}^{B \times 1 \times 28 \times 28}$ 依次执行两级卷积池化特征提取与双层全连接分类映射：
 
-$$X^{(0)} \xrightarrow{\text{Conv}_ {1\to 16}^{3\times 3} + \text{ReLU}} \mathbb{R}^{B \times 16 \times 26 \times 26} \xrightarrow{\text{MaxPool}_ {2\times 2, S=2}} X^{(1)} \in \mathbb{R}^{B \times 16 \times 13 \times 13}$$
+- **Stage 1 — 第一卷积池化块**（`Conv2d(1→16, 3×3) + ReLU + MaxPool2d(2×2, S=2)`，空间维 $28 \times 28 \to 26 \times 26 \to 13 \times 13$）：
 
-$$X^{(1)} \xrightarrow{\text{Conv}_ {16\to 32}^{3\times 3} + \text{ReLU}} \mathbb{R}^{B \times 32 \times 11 \times 11} \xrightarrow{\text{MaxPool}_ {2\times 2, S=2}} X^{(2)} \in \mathbb{R}^{B \times 32 \times 5 \times 5}$$
+<p align="center">$X^{(1)} = \mathrm{MaxPool2d}\left(\mathrm{ReLU}\left(\mathrm{Conv2d}\left(X^{(0)};\quad W^{(1)}, b^{(1)}\right)\right)\right), \qquad X^{(0)} \in \mathbb{R}^{B \times 1 \times 28 \times 28} \quad\longrightarrow\quad X^{(1)} \in \mathbb{R}^{B \times 16 \times 13 \times 13}$</p>
 
-$$\text{vec}(X^{(2)}) \in \mathbb{R}^{B \times 800} \xrightarrow{\text{Linear}_ {800\to 128} + \text{ReLU}} \mathbb{R}^{B \times 128} \xrightarrow{\text{Linear}_ {128\to 10} + \text{Softmax}} P \in [0, 1]^{B \times 10}$$
+- **Stage 2 — 第二卷积池化块**（`Conv2d(16→32, 3×3) + ReLU + MaxPool2d(2×2, S=2)`，空间维 $13 \times 13 \to 11 \times 11 \to 5 \times 5$）：
+
+<p align="center">$X^{(2)} = \mathrm{MaxPool2d}\left(\mathrm{ReLU}\left(\mathrm{Conv2d}\left(X^{(1)};\quad W^{(2)}, b^{(2)}\right)\right)\right), \qquad X^{(1)} \in \mathbb{R}^{B \times 16 \times 13 \times 13} \quad\longrightarrow\quad X^{(2)} \in \mathbb{R}^{B \times 32 \times 5 \times 5}$</p>
+
+- **Stage 3 — 展平与全连接分类头**（`Flatten(800) → Linear(800→128) + ReLU → Linear(128→10) + Softmax`）：
+
+<p align="center">$P = \mathrm{Softmax}\left(W^{(4)} \mathrm{ReLU}\left(W^{(3)} \mathrm{Flatten}\left(X^{(2)}\right) + b^{(3)}\right) + b^{(4)}\right), \qquad \mathrm{Flatten}\left(X^{(2)}\right) \in \mathbb{R}^{B \times 800} \quad\longrightarrow\quad P \in [0, 1]^{B \times 10}$</p>
 
 ### 逐层复杂度与 Roofline 算术强度分解
 

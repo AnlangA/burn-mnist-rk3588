@@ -42,32 +42,32 @@
 ### 2.1 网络拓扑结构与张量变换形式化定义
 本研究采用针对 $28 \times 28$ 单通道灰度手写数字分类设计的四层卷积神经网络 `MnistCnn`（源码定义见 [`src/model.rs`](src/model.rs#L146-L194)）。设原始输入像素矩阵为 $I \in \lbrace 0, 1, \dots, 255 \rbrace^{28 \times 28}$，预处理阶段执行标准仿射归一化得到输入张量 $X^{(0)} \in \mathbb{R}^{B \times 1 \times 28 \times 28}$：
 
-$$X^{(0)}_ {b, 0, h, w} = \frac{I_ {b, h, w} / 255.0 - \mu_ {\text{MNIST}}}{\sigma_ {\text{MNIST}}}, \quad \mu_ {\text{MNIST}} = 0.1307, \quad \sigma_ {\text{MNIST}} = 0.3081$$
+<p align="center">$X_ {b, 0, h, w}^{(0)} = \frac{I_ {b, h, w} / 255.0 - \mu_ {\text{MNIST}}}{\sigma_ {\text{MNIST}}}, \qquad \mu_ {\text{MNIST}} = 0.1307, \qquad \sigma_ {\text{MNIST}} = 0.3081$</p>
 
 网络前向传播由两个卷积-激活-池化特征提取块与两个全连接分类层组成：
 
-1. **第一卷积池化块**（ $\text{Conv}_ 1 \to \text{ReLU} \to \text{MaxPool}_ 1$ ）：
-   采用无填充（Valid Padding, `P = 0`）、步长 `S = 1` 的 $3 \times 3$ 二维卷积将通道数扩展至 $C_1 = 16$，随后经 $\text{ReLU}(z) = \max(0, z)$ 非线性激活与 $2 \times 2$（步长 $S_p = 2$）最大池化：
+1. **第一卷积池化块**（ $\mathrm{Conv1} \to \mathrm{ReLU} \to \mathrm{MaxPool1}$ ）：
+   采用无填充（Valid Padding, `P = 0`）、步长 `S = 1` 的 $3 \times 3$ 二维卷积将通道数扩展至 $C_1 = 16$，随后经 $\mathrm{ReLU}(z) = \max(0, z)$ 非线性激活与 $2 \times 2$（步长 $S_p = 2$）最大池化：
 
-$$Z^{(1)}_ {b, c, h, w} = b^{(1)}_ {c} + \sum_ {u=0}^{2} \sum_ {v=0}^{2} W^{(1)}_ {c, 0, u, v} X^{(0)}_ {b, 0, h+u, w+v}, \quad h, w \in [0, 25], \quad c \in [0, 15]$$
+<p align="center">$Z_ {b, c, h, w}^{(1)} = b_ {c}^{(1)} + \sum_ {u=0}^{2} \sum_ {v=0}^{2} W_ {c, 0, u, v}^{(1)} X_ {b, 0, h+u, w+v}^{(0)}, \qquad h, w \in [0, 25], \qquad c \in [0, 15]$</p>
 
-$$X^{(1)}_ {b, c, i, j} = \max_ {u, v \in \lbrace 0, 1 \rbrace} \text{ReLU}\left(Z^{(1)}_ {b, c, 2i+u, 2j+v}\right), \quad X^{(1)} \in \mathbb{R}^{B \times 16 \times 13 \times 13}$$
+<p align="center">$X_ {b, c, i, j}^{(1)} = \max_ {u, v \in \lbrace 0, 1 \rbrace} \mathrm{ReLU}\left(Z_ {b, c, 2i+u, 2j+v}^{(1)}\right), \qquad X^{(1)} \in \mathbb{R}^{B \times 16 \times 13 \times 13}$</p>
 
-2. **第二卷积池化块**（ $\text{Conv}_ 2 \to \text{ReLU} \to \text{MaxPool}_ 2$ ）：
+2. **第二卷积池化块**（ $\mathrm{Conv2} \to \mathrm{ReLU} \to \mathrm{MaxPool2}$ ）：
    采用 $C_2 = 32$ 个 $16 \times 3 \times 3$ 卷积核（`P = 0, S = 1`），输出空间分辨率 $11 \times 11$，再经 $2 \times 2$ 最大池化（偶数边界向下取整 $\lfloor 11 / 2 \rfloor = 5$）输出 $5 \times 5$ 特征图：
 
-$$Z^{(2)}_ {b, k, h, w} = b^{(2)}_ {k} + \sum_ {c=0}^{15} \sum_ {u=0}^{2} \sum_ {v=0}^{2} W^{(2)}_ {k, c, u, v} X^{(1)}_ {b, c, h+u, w+v}, \quad h, w \in [0, 10], \quad k \in [0, 31]$$
+<p align="center">$Z_ {b, k, h, w}^{(2)} = b_ {k}^{(2)} + \sum_ {c=0}^{15} \sum_ {u=0}^{2} \sum_ {v=0}^{2} W_ {k, c, u, v}^{(2)} X_ {b, c, h+u, w+v}^{(1)}, \qquad h, w \in [0, 10], \qquad k \in [0, 31]$</p>
 
-$$X^{(2)}_ {b, k, i, j} = \max_ {u, v \in \lbrace 0, 1 \rbrace} \text{ReLU}\left(Z^{(2)}_ {b, k, 2i+u, 2j+v}\right), \quad X^{(2)} \in \mathbb{R}^{B \times 32 \times 5 \times 5}$$
+<p align="center">$X_ {b, k, i, j}^{(2)} = \max_ {u, v \in \lbrace 0, 1 \rbrace} \mathrm{ReLU}\left(Z_ {b, k, 2i+u, 2j+v}^{(2)}\right), \qquad X^{(2)} \in \mathbb{R}^{B \times 32 \times 5 \times 5}$</p>
 
-3. **特征展平与全连接分类头**（ $\text{Flatten} \to \text{FC}_ 1 \to \text{ReLU} \to \text{FC}_ 2 \to \text{Softmax}$ ）：
-   将三维特征图展平为向量 $f_b = \text{vec}(X^{(2)}_ {b}) \in \mathbb{R}^{800}$，依次通过隐藏层维度 $D_1 = 128$ 的全连接层与输出维度 $D_2 = 10$ 的分类层：
+3. **特征展平与全连接分类头**（ $\mathrm{Flatten} \to \mathrm{FC1} \to \mathrm{ReLU} \to \mathrm{FC2} \to \mathrm{Softmax}$ ）：
+   将三维特征图展平为向量 $f_b = \mathrm{vec}(X_ {b}^{(2)}) \in \mathbb{R}^{800}$，依次通过隐藏层维度 $D_1 = 128$ 的全连接层与输出维度 $D_2 = 10$ 的分类层：
 
-$$h_b = \text{ReLU}\left(W^{(3)} f_b + b^{(3)}\right) \in \mathbb{R}^{128}, \quad \ell_b = W^{(4)} h_b + b^{(4)} \in \mathbb{R}^{10}$$
+<p align="center">$h_b = \mathrm{ReLU}\left(W^{(3)} f_b + b^{(3)}\right) \in \mathbb{R}^{128}, \qquad \ell_b = W^{(4)} h_b + b^{(4)} \in \mathbb{R}^{10}$</p>
 
    最终类别后验概率分布由数值稳定版 Softmax 给出（其中 $m_b = \max_j \ell_ {b,j}$ ）：
 
-$$P(y = c \mid X^{(0)}_ {b}) = \frac{\exp(\ell_ {b, c} - m_b)}{\sum_ {j=0}^{9} \exp(\ell_ {b, j} - m_b)}, \quad \hat{y}_ {b} = \arg\max_ {c \in \lbrace 0,\dots,9 \rbrace} P(y = c \mid X^{(0)}_ {b})$$
+<p align="center">$P(y = c \mid X_ {b}^{(0)}) = \frac{\exp(\ell_ {b, c} - m_b)}{\sum_ {j=0}^{9} \exp(\ell_ {b, j} - m_b)}, \qquad \hat{y}_ {b} = \arg\max_ {c \in \lbrace 0,\dots,9 \rbrace} P(y = c \mid X_ {b}^{(0)})$</p>
 
 ### 2.2 逐层参数量、计算复杂度 (MACs / FLOPs) 与算术强度剖析
 设单次乘加运算（Multiply-Accumulate, MAC）等价于 2 FLOPs。表 2-1 给出了 `MnistCnn` 在单样本（`B = 1`）下的逐层张量形态、精确参数量、计算复杂度及访存开销。
@@ -88,9 +88,9 @@ $$P(y = c \mid X^{(0)}_ {b}) = \frac{\exp(\ell_ {b, c} - m_b)}{\sum_ {j=0}^{9} \
 1. **计算与参数的空间极端不对称性**：
    第二卷积层 `conv2` 仅占全网参数量的 **4.27%**（4,640 / 108,618），却贡献了全网 **73.50%** 的乘加计算量（557,568 / 758,592 MACs）；相反，第一全连接层 `fc1` 占据了全网 **94.39%** 的参数体积（410,112 B / 434,472 B），但计算量仅占 **13.50%**（102,400 MACs）。
 2. **极低的单样本算术强度与缓存驻留效应**：
-   在 `B = 1` 时，整网总计仅需执行 1.54 MFLOPs 运算，且全部 FP32 权重（424.3 KB）与峰值中间激活张量（`< 60 KB`）之和不足 **485 KB**。当批次扩大为 $B$ 时，整网算术强度 $\mathcal{I}(B)$ 满足：
+   在 `B = 1` 时，整网总计仅需执行 $F_ {\text{sample}} = 1.5426 \times 10^6\text{ FLOPs}$ 运算，且全部 FP32 权重（424.3 KB）与峰值中间激活张量（`< 60 KB`）之和不足 **485 KB**。当批次扩大为 $B$ 时，整网算术强度 $\mathcal{I}(B)$ 满足：
 
-$$\mathcal{I}(B) = \frac{B \cdot \text{FLOPs}_ {\text{sample}}}{M_ {\text{weights}} + B \cdot M_ {\text{activations}}} = \frac{1.5426 \times 10^6 \cdot B}{434,472 + 78,216 \cdot B} \quad \text{(FLOPs/Byte, FP32)}$$
+<p align="center">$\mathcal{I}(B) = \frac{B \cdot F_ {\text{sample}}}{M_ {\text{weights}} + B \cdot M_ {\text{activations}}} = \frac{1.5426 \times 10^6 \cdot B}{434,472 + 78,216 \cdot B} \quad \text{(FLOPs/Byte, FP32)}$</p>
 
    当 $B = 1$ 时， $\mathcal{I}(1) \approx 3.01\text{ FLOPs/Byte}$ ；即使当 $B = 256$ 时， $\mathcal{I}(256) \approx 19.32\text{ FLOPs/Byte}$ 。这一数值远低于现代移动 GPU 的 Roofline 平衡点（Ridge Point），直接决定了不同微架构上的性能分化。
 
@@ -127,7 +127,7 @@ $$\mathcal{I}(B) = \frac{B \cdot \text{FLOPs}_ {\text{sample}}}{M_ {\text{weight
 
 #### 表 3-1：`MnistCnn` 训练与验证收敛过程（`epochs=5, batch_size=128, lr=0.001`）
 
-| 训练轮次 (Epoch) | 训练集交叉熵损失 ($\mathcal{L}_ {\text{train}}$) | 训练集准确率 ($\text{Acc}_ {\text{train}}$) | 测试集交叉熵损失 ($\mathcal{L}_ {\text{test}}$) | 测试集准确率 ($\text{Acc}_ {\text{test}}$) | 单轮耗时 (s) |
+| 训练轮次 (Epoch) | 训练集交叉熵损失 ($\mathcal{L}_ {\text{train}}$) | 训练集准确率 ($A_ {\text{train}}$) | 测试集交叉熵损失 ($\mathcal{L}_ {\text{test}}$) | 测试集准确率 ($A_ {\text{test}}$) | 单轮耗时 (s) |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Epoch 1** | 0.224454 | 93.65% | 0.066343 | 97.92% (9,792 / 10,000) | 25.53 s |
 | **Epoch 2** | 0.063663 | 98.00% | 0.040709 | 98.77% (9,877 / 10,000) | 23.73 s |
@@ -154,12 +154,12 @@ $$\mathcal{I}(B) = \frac{B \cdot \text{FLOPs}_ {\text{sample}}}{M_ {\text{weight
 1. **感受野不变的 `W = 32` 零拷贝 DMA 步长对齐定理**（Receptive-Field Invariant Stride Alignment）：
    在 `librknnrt v1.5.2` 中，当批次 $B > 1$ 时，硬件 DMA 要求四维输入张量 $[B, C, H, W]$ 的最内层宽度 $W$ 按 8 元素对齐（即 `W = 28` 的物理行步长 `w_stride = 32`）。若在计算图中插入 `Slice` 算子裁切后 4 列，会导致 NPU 硬件流水线中断并引入额外内存搬移。为此，我们利用离散卷积与池化的感受野不变性：
    - 将 $B > 1$ 子模型的输入张量宽度扩展为 $W' = 32$（列索引 `28..31` 填充 0）；
-   - 经 $\text{Conv}_ 1(3\times 3) \to \text{Pool}_ 1(2\times 2, S=2) \to \text{Conv}_ 2(3\times 3) \to \text{Pool}_ 2(2\times 2, S=2)$ 后，空间宽度变换为：
+   - 经 $\mathrm{Conv1}(3\times 3) \to \mathrm{Pool1}(2\times 2, S=2) \to \mathrm{Conv2}(3\times 3) \to \mathrm{Pool2}(2\times 2, S=2)$ 后，空间宽度依次按 $W - 2$ 与 $\lfloor W / 2 \rfloor$ 递减变换为：
 
-$$W' = 32 \xrightarrow{-2} 30 \xrightarrow{/2} 15 \xrightarrow{-2} 13 \xrightarrow{\lfloor \cdot/2 \rfloor} 6$$
+<p align="center">$W' = 32 \quad\longrightarrow\quad 30 \quad (\mathrm{Conv1}) \quad\longrightarrow\quad 15 \quad (\mathrm{Pool1}) \quad\longrightarrow\quad 13 \quad (\mathrm{Conv2}) \quad\longrightarrow\quad 6 \quad (\mathrm{Pool2})$</p>
 
-   - 对于 $\text{Pool}_ 2$ 输出的第 $c \in \lbrace 0, 1, 2, 3, 4 \rbrace$ 列，其在原始输入 $X^{(0)}$ 上的感受野区间为 $[4c, 4c+9] \subseteq [0, 25] \subset [0, 27]$，完全不依赖填充列 $[28, 31]$；唯有第 $c = 5$ 列受填充区影响。
-   - 我们将 `fc1` 权重张量重塑为 `[128, 32, 5, 5]` 并零填充扩展为 $W^{(3)}_ {\text{pad}} \in \mathbb{R}^{128 \times 32 \times 5 \times 6}$（令第 $c = 5$ 列权重恒为 $\mathbf{0}$）。由此， $\text{FC}_ 1$ 的内积输出在数学上与原始 `W = 28` 模型**严格恒等**（Bit-for-bit Identical，10,000 张测试集准确率同为 **98.66%**），同时消除了全部运行时切片开销，实现了 32 元素对齐的零拷贝突发 DMA 传输。
+   - 对于 $\mathrm{Pool2}$ 输出的第 $c \in \lbrace 0, 1, 2, 3, 4 \rbrace$ 列，其在原始输入 $X^{(0)}$ 上的感受野区间为 $[4c, 4c+9] \subseteq [0, 25] \subset [0, 27]$，完全不依赖填充列 $[28, 31]$；唯有第 $c = 5$ 列受填充区影响。
+   - 我们将 `fc1` 权重张量重塑为 `[128, 32, 5, 5]` 并零填充扩展为 $W_ {\text{pad}}^{(3)} \in \mathbb{R}^{128 \times 32 \times 5 \times 6}$（令第 $c = 5$ 列权重恒为 $\mathbf{0}$）。由此， $\mathrm{FC1}$ 的内积输出在数学上与原始 `W = 28` 模型**严格恒等**（Bit-for-bit Identical，10,000 张测试集准确率同为 **98.66%**），同时消除了全部运行时切片开销，实现了 32 元素对齐的零拷贝突发 DMA 传输。
 2. **`RKNB` 多批次三核自适应容器**（Multi-Batch 3-Core Bundle）：
    为兼顾 `B = 1` 的极致低延迟与 $B \in \lbrace 16, 64, 256 \rbrace$ 的三核并发吞吐，[`scripts/export_and_build_rknn.py`](scripts/export_and_build_rknn.py) 将 `fp16_b1` 置于 `mnist_cnn.rknn` 偏移量 `0` 处（保持对标准 `rknn_init` 的完全向后兼容），并在文件尾部按 64 字节对齐追加了 $B_ {\text{sub}} \in \lbrace 1, 6, 22, 86 \rbrace$ 的 FP16 与 INT8（基于 200 张 MNIST 训练样本校准的训练后量化 PTQ）共 8 个编译子图与 24 字节 `RKNB\x01\x00\x00\x00` 索引尾标。运行时 [`src/npu.rs`](src/npu.rs) 在 NPU Core 0、Core 1、Core 2 上各实例化一个独立上下文，使单次三核并发波次（Wave）分别覆盖 $3 \times 6 = 18 \ge 16$、 $3 \times 22 = 66 \ge 64$ 与 $3 \times 86 = 258 \ge 256$ 个样本。
 
@@ -187,9 +187,9 @@ $$W' = 32 \xrightarrow{-2} 30 \xrightarrow{/2} 15 \xrightarrow{-2} 13 \xrightarr
    - 单独记录首次单样本 `[1, 1, 28, 28]` 推理耗时 `single_sample_warmup_ms`（涵盖 WGPU 动态 WGSL/SPIR-V 着色器编译、管线状态对象 PSO 创建或 NPU DMA 缓冲池首次绑定）；
    - 在每个批次规模 $B \in \lbrace 1, 16, 64, 256 \rbrace$ 正式计时前，先执行 $W_B \in \lbrace 20, 10, 10, 5 \rbrace$ 次预热迭代以消除页面错误（Page Fault）与冷缓存效应，随后采集 $N_B \in \lbrace 100, 50, 50, 25 \rbrace$ 次稳态迭代的分布统计量（Mean、P50、P95、P99）。
 2. **GPU 硬件引擎计时器去重采集**（`drm-engine-panthor`）：
-   通过向 `/sys/bus/platform/devices/fb000000.gpu/profiling` 写入 `3` 激活 Mali-G610 硬件时间戳寄存器，并在每次基准测试前后扫描 `/proc/self/fdinfo/*`。针对多个文件描述符可能指向同一 DRM 客户端上下文的问题，[`read_panthor_gpu_ns()`](src/model.rs#L305-L343) 按 `drm-client-id` 进行哈希去重（保留各 Client ID 的最大累计纳秒数），精确提取 GPU 着色器核心的真实硬件繁忙时间：
+   通过向 `/sys/bus/platform/devices/fb000000.gpu/profiling` 写入 `3` 激活 Mali-G610 硬件时间戳寄存器，并在每次基准测试前后扫描 `/proc/self/fdinfo/*`。针对多个文件描述符可能指向同一 DRM 客户端上下文的问题，[`read_panthor_gpu_ns()`](src/model.rs#L305-L343) 按 `drm-client-id`（记 $c \in \mathcal{C}$）进行哈希去重（保留各 Client ID 的最大累计纳秒数），精确提取 GPU 着色器核心的真实硬件繁忙时间：
 
-$$T_ {\text{GPU, hw}} = \frac{1}{10^6 \cdot N_B} \sum_ {\text{client-id} \in \mathcal{C}} \left( t^{\text{after}}_ {\text{panthor}}(\text{client-id}) - t^{\text{before}}_ {\text{panthor}}(\text{client-id}) \right) \quad \text{(ms/batch)}$$
+<p align="center">$T_ {\text{GPU, hw}} = \frac{1}{10^6 \cdot N_B} \sum_ {c \in \mathcal{C}} \left( t_ {\text{panthor}}^{\text{after}}(c) - t_ {\text{panthor}}^{\text{before}}(c) \right) \quad \text{(ms/batch)}$</p>
 
 3. **NPU 硬件微秒/纳秒级计时器采集**（`RKNN_QUERY_PERF_RUN` & `hw_busy_ns`）：
    每次调用 `rknn_run` 后，立即通过 `rknn_query(ctx, RKNN_QUERY_PERF_RUN, &perf_run, sizeof(perf_run))` 读取 RKNPU 硬件性能寄存器报告的微秒级算子执行耗时 `run_duration` 累加至全局原子计数器 `RKNPU_HW_BUSY_NS`，同时结合内核驱动 [`drivers/rknpu.c`](drivers/rknpu.c) 导出的 `/sys/module/rknpu/parameters/hw_busy_ns` 高精度中断计时器。在三核并发模式下， $T_ {\text{NPU, hw}}$ 反映 3 个 NPU 核心硬件执行时间的总和（ $\Sigma_ {\text{core } 0..2}$ ），而端到端延迟 $T_ {\text{e2e}}$ 则反映并行波次的墙钟完成时间。
@@ -310,12 +310,12 @@ $$T_ {\text{GPU, hw}} = \frac{1}{10^6 \cdot N_B} \sum_ {\text{client-id} \in \ma
 
 为了从计算机体系结构层面解释第 5 节的实验现象，我们将任意计算后端执行单批次前向推理的端到端延迟 $T_ {\text{e2e}}(B)$ 分解为四项正交分量：
 
-$$T_ {\text{e2e}}(B) = T_ {\text{dispatch}}(B) + \max\left(T_ {\text{compute}}(B),\quad T_ {\text{mem}}(B)\right) + T_ {\text{sync}}(B)$$
+<p align="center">$T_ {\text{e2e}}(B) = T_ {\text{dispatch}}(B) + \max\left(T_ {\text{compute}}(B),\quad T_ {\text{mem}}(B)\right) + T_ {\text{sync}}(B)$</p>
 
 其中：
 - $T_ {\text{dispatch}}(B)$ 为主机端算子派发、命令缓冲区构建与内核驱动 `ioctl` 提交开销；
-- $T_ {\text{compute}}(B) = \frac{B \cdot \text{FLOPs}_ {\text{sample}}}{\eta_ {\text{arch}} \cdot \text{Peak}_ {\text{FLOPS}}}$ 为算术逻辑单元（ALU/MAC）的计算时间；
-- $T_ {\text{mem}}(B) = \frac{M_ {\text{traffic}}(B)}{\text{BW}_ {\text{eff}}}$ 为有效内存层级（L2/L3 Cache、片上 SRAM 或外部 LPDDR4X）的数据搬移时间；
+- $T_ {\text{compute}}(B) = \frac{B \cdot F_ {\text{sample}}}{\eta_ {\text{arch}} \cdot P_ {\text{peak}}}$ 为算术逻辑单元（ALU/MAC）的计算时间（ $P_ {\text{peak}}$ 为硬件峰值算力）；
+- $T_ {\text{mem}}(B) = \frac{M_ {\text{traffic}}(B)}{B_ {\text{eff}}}$ 为有效内存层级（L2/L3 Cache、片上 SRAM 或外部 LPDDR4X，有效带宽 $B_ {\text{eff}}$）的数据搬移时间；
 - $T_ {\text{sync}}(B)$ 为设备端至主机端的结果拷贝、缓存一致性维护（Cache Invalidation/Flush）与同步等待时间。
 
 ### 6.1 为什么在轻量级 CNN 上 CPU (`Burn Flex`) 全面快于移动 GPU (`Mali-G610`)？
